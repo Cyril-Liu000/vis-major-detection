@@ -1,0 +1,1 @@
+# vis-major-detection
