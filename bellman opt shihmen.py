@@ -2050,7 +2050,7 @@ if __name__ == "__main__":
     with open("./configs.json", encoding="utf-8") as f:
         configs = json.load(f)
 
-    risk_map = lm.annual_riskmap
+    risk_map = lm.risk_map_read(configs['files']['riskmap_p'])
     consumption_limit = 1500
     max_storage = 3000
     min_storage = 150
@@ -2072,17 +2072,17 @@ if __name__ == "__main__":
     # opt_l = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
     #                 discount_factors[2])
     
-    date_series = df_r["date"]
-    inflow_series = df_r["inflow"]
-    storage_series = df_r["storage"]
-    correction_series = df_r["correction"]
-    consumption_series = df_r["consumption"]
-    rfd_series = df_r["rfd"]
-    threshold_series = df_r["threshold"]
-    cwdi_series = df_r["cwdi"]
+    # date_series = df_r["date"]
+    # inflow_series = df_r["inflow"]
+    # storage_series = df_r["storage"]
+    # correction_series = df_r["correction"]
+    # consumption_series = df_r["consumption"]
+    # rfd_series = df_r["rfd"]
+    # threshold_series = df_r["threshold"]
+    # cwdi_series = df_r["cwdi"]
     
-    q_l_ri = opt_l.training_mdp(0)
-    policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
+    # q_l_ri = opt_l.training_mdp(0)
+    # policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
 
     policy_l_ri = get_policy('policy_l_ri')
     policy_l_riii = get_policy('policy_l_riii')

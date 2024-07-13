@@ -505,31 +505,24 @@ class read_inflow_estimate_data:
         month_list_storage = [[],[],[],[],[],[],[],[],[],[],[],[]]
         df_rr = df_r[:][0:444]
         
-        
         for i in range(len(df_rr)):
-            
             for j in range(len(month_list_correction)):
-                
                 if df_rr["date"][i].month == j + 1:                  
                     month_list_correction[j].append(df_rr["correction"][i])
                     month_list_storage[j].append(df_rr["storage"][i])
-                
                 else:
                     continue
         
         for i in range(len(month_list_correction)):
-            
             month_list_correction[i] = np.array(month_list_correction[i])
             month_list_storage[i] = np.array(month_list_storage[i])
         
         return np.mean(month_list_correction, axis = 1), (month_list_correction, month_list_storage) 
         
     def get_storage_correction_inflow_consum_dataframe(self):
-        
         file_path = self.file_path_data_sheet
         read_data = pd.read_excel(file_path)
         df = pd.DataFrame(read_data)
-        
         df_r = pd.DataFrame()
         
         date_series = pd.Series(df["date_month"])
@@ -546,36 +539,32 @@ class read_inflow_estimate_data:
         de_storage = np.gradient(storage)
         outflow_record = []
         for i in range(len(de_storage)):
-            
             if inflow_d[i] - consumption[i] > 3000 - storage[i]:
-                
                 inflow[i] = 3000 - storage[i] + consumption[i]
                 outflow_record.append(1)
-                
             else:
                 outflow_record.append(0)
                 continue
         
         change = inflow - consumption
         outflow_record = np.array(outflow_record)
-        df_r.insert(loc = 0, column = "date", value = date_series)
-        df_r.insert(loc = 1, column = "storage", value = storage)
-        df_r.insert(loc = 2, column = "de_storage", value = de_storage)
-        df_r.insert(loc = 3, column = "inflow", value = inflow_d)
-        df_r.insert(loc = 4, column = "consumption", value = consumption)
-        df_r.insert(loc = 5, column = "correction", value = de_storage - change)
-        df_r.insert(loc = 6, column = "outflow_record", value = outflow_record)
-        df_r.insert(loc = 7, column = "correct_inflow", value = inflow)
-        df_r.insert(loc = 8, column = "rfd", value = rfd)
-        df_r.insert(loc = 9, column = "cwdi", value = cwdi)
-        df_r.insert(loc = 10, column = "threshold", value = threshold)
-        df_r.insert(loc = 11, column = "imsrri_6", value = imsrri_6)
-        df_r.insert(loc = 12, column = "imsrri_12", value = imsrri_12)
+        df_r.insert(loc=0, column = "date", value = date_series)
+        df_r.insert(loc=1, column = "storage", value = storage)
+        df_r.insert(loc=2, column = "de_storage", value = de_storage)
+        df_r.insert(loc=3, column = "inflow", value = inflow_d)
+        df_r.insert(loc=4, column = "consumption", value = consumption)
+        df_r.insert(loc=5, column = "correction", value = de_storage - change)
+        df_r.insert(loc=6, column = "outflow_record", value = outflow_record)
+        df_r.insert(loc=7, column = "correct_inflow", value = inflow)
+        df_r.insert(loc=8, column = "rfd", value = rfd)
+        df_r.insert(loc=9, column = "cwdi", value = cwdi)
+        df_r.insert(loc=10, column = "threshold", value = threshold)
+        df_r.insert(loc=11, column = "imsrri_6", value = imsrri_6)
+        df_r.insert(loc=12, column = "imsrri_12", value = imsrri_12)
         df_r = df_r.dropna()
         df_r = df_r.reset_index(drop = True)        
         return df_r
          
-
 class hydraulic_freq_analyse:
     
     def __init__(self,data_list , log_list = True):
@@ -726,7 +715,6 @@ class hydraulic_freq_analyse:
             result.append([temp_result,temp_parameter,maxx])
                 
         return result
-
 
 class temperature_ar_model:
     
@@ -1283,7 +1271,6 @@ class temperature_ar_model:
             output_list[i] = month_array
         
         return output_list
-
 
 class precipitation_ar_model:
     
@@ -1993,7 +1980,6 @@ class precipitation_ar_model:
         
         return output_list        
         
-    
 class inflow_estimate:
     
     def __init__(self, date_series, precipitation_series, temperature_series):
@@ -2408,9 +2394,7 @@ class inflow_estimate:
             
         return answer
     
-
 class statistic_preparing:
-    
     def __init__(self, mvsk, distribution_name, log_list = True):
         
         self.mvsk = mvsk
@@ -2568,7 +2552,6 @@ class statistic_preparing:
             
             return self.lognorm_stats()
 
-
 class climate_hydrological_simulation:
     
     
@@ -2634,9 +2617,7 @@ class climate_hydrological_simulation:
         
         return temperature_series, precipitation_series, streamflow, evapotranspiration        
         
-        
 class catcharea_state:
-    
     def __init__(self ,up_target_storage_limit, resilience, bier):
         
         
@@ -2859,7 +2840,6 @@ class catcharea_state:
         update_state = tuple([cta, wdi, rfd, end_storage, overflow])
             
         return update_state
-
 
 class SAR_model:
     
@@ -3378,7 +3358,6 @@ class SAR_model:
         
         return np.asarray([0, nois_std] ,dtype = np.float64)     
 
-
 class social_activity:
     
     def __init__(self, configs, stage, age, scenario_code):
@@ -3580,9 +3559,7 @@ class social_activity:
                     
         return np.asarray(output)
 
-
 class storage_correction:
-    
     def __init__(self, array_list):
         
         self.array_list = array_list
@@ -3625,12 +3602,9 @@ class storage_correction:
         slope, intercept = self.get_month_regression_storage_to_correction(month)
         y_p = slope * x + intercept
         noise = -1 * abs(y-y_p)
-        
+    
         return noise
-
-
 class dual_system_simulation:
-
     def __init__(self, configs, stage, age, scenario_code, up_target_storage_limit=3000):
         rd = read_inflow_estimate_data(configs['files'])
         
@@ -3670,7 +3644,6 @@ class dual_system_simulation:
         
     def mcdbdi_drought_real_time(self, month, consum, storage_state,
                                  simulation_time = 1000, wdi_c = 0.85):
-        
         count_rfd = 0
         count_cwdi = 0
         count_fail = 0
@@ -3679,9 +3652,7 @@ class dual_system_simulation:
         rfd_record = []
         wdi_record = []
         
-        
         for i in range(simulation_time):
-            
             climate_body = self.hydrological_model.hydrological_simulation(month)
             inflow = climate_body[2]
             ev = climate_body[3]
@@ -3694,46 +3665,29 @@ class dual_system_simulation:
             wdi_record.append(cwdi)
             
             if rfd > threshold :
-                
                 count_rfd = count_rfd + 1
-            
             if cwdi > wdi_c:
-                
                 count_cwdi = count_cwdi + 1
-            
             if rfd > threshold and cwdi > wdi_c :
-                
                 count_fail = count_fail + 1
-            
             else: 
-                
                 continue
-
         
         prob_rfd = count_rfd / simulation_time
         prob_cwdi = count_cwdi / simulation_time
         prob_fail = count_fail / simulation_time
-        
-        
         return prob_rfd, prob_cwdi, prob_fail
-
-
 
     def mcdbdi_drought_real_time_v2(self, month, consum, storage_state,
                                  simulation_time = 1000, wdi_c = 0.85):
-        
-        
         count_rfd = 0
         count_cwdi = 0
         count_fail = 0
         threshold = self.rfd_threshold[month - 1]
-        
         rfd_record = []
         wdi_record = []
         
-        
         for i in range(simulation_time):
-            
             climate_body = self.hydrological_model.hydrological_simulation_v2(month)
             inflow = climate_body[2]
             ev = climate_body[3]
@@ -3744,31 +3698,19 @@ class dual_system_simulation:
             
             rfd_record.append(rfd)
             wdi_record.append(cwdi)
-            
             if rfd > threshold :
-                
                 count_rfd = count_rfd + 1
-            
             if cwdi > wdi_c:
-                
                 count_cwdi = count_cwdi + 1
-            
             if rfd > threshold and cwdi > wdi_c :
-                
                 count_fail = count_fail + 1
-            
             else: 
-                
                 continue
-
         
         prob_rfd = count_rfd / simulation_time
         prob_cwdi = count_cwdi / simulation_time
         prob_fail = count_fail / simulation_time
-        
-        
         return prob_rfd, prob_cwdi, prob_fail
-
 
     def mcdbdi_drought_real_time_transbasin(self,
                                             month, consum, 
@@ -3777,19 +3719,14 @@ class dual_system_simulation:
                                             simulation_time = 1000,
                                             wdi_c = 0.85,
                                             ):
-        
-        
         count_rfd = 0
         count_cwdi = 0
         count_fail = 0
         threshold = self.rfd_threshold[month - 1]
-        
         rfd_record = []
         wdi_record = []
         
-        
         for i in range(simulation_time):
-            
             climate_body = self.hydrological_model.hydrological_simulation_v2(month)
             inflow = climate_body[2]
             ev = climate_body[3]
@@ -3801,33 +3738,19 @@ class dual_system_simulation:
             
             rfd_record.append(rfd)
             wdi_record.append(cwdi)
-            
             if rfd > threshold :
-                
                 count_rfd = count_rfd + 1
-            
             if cwdi > wdi_c:
-                
                 count_cwdi = count_cwdi + 1
-            
             if rfd > threshold and cwdi > wdi_c :
-                
                 count_fail = count_fail + 1
-            
-            else: 
-                
+            else:
                 continue
-
         
         prob_rfd = count_rfd / simulation_time
         prob_cwdi = count_cwdi / simulation_time
         prob_fail = count_fail / simulation_time
-        
-        
         return prob_rfd, prob_cwdi, prob_fail
-
-
-
 
     def get_seasonal_risk_map(self, 
                               month,
@@ -3835,7 +3758,6 @@ class dual_system_simulation:
                               max_storage,
                               min_storage,
                               resolution):
-        
         rfd_m = np.ones(shape = [resolution, resolution])
         cwdi_m = np.ones(shape = [resolution, resolution])
         fail_m = np.ones(shape = [resolution, resolution])        
@@ -3846,22 +3768,14 @@ class dual_system_simulation:
         s_step = (max_storage - min_storage) / resolution        
         
         for i in range(resolution):
-            
             consumption_array[i] = c_step * (i + 1)
-
-            
             for j in range(resolution):
-                
                 rfd_m[i][j],cwdi_m[i][j],fail_m[i][j] = self.mcdbdi_drought_real_time(month, 
                                                                                       c_step * (i +1),
                                                                                       min_storage + s_step * (resolution - j)
                                                                                       )
-                
                 storage_array[j] = min_storage + s_step * j
-        
         return rfd_m, cwdi_m, fail_m, consumption_array, storage_array
-
-
 
     def get_seasonal_risk_map_v2(self, 
                                  month,
@@ -3869,7 +3783,6 @@ class dual_system_simulation:
                                  max_storage,
                                  min_storage,
                                  resolution):
-        
         rfd_m = np.ones(shape = [resolution, resolution])
         cwdi_m = np.ones(shape = [resolution, resolution])
         fail_m = np.ones(shape = [resolution, resolution])        
@@ -3880,46 +3793,29 @@ class dual_system_simulation:
         s_step = (max_storage - min_storage) / resolution        
         
         for i in range(resolution):
-            
             consumption_array[i] = c_step * (i + 1)
-            
             for j in range(resolution):
-                
                 rfd_m[i][j],cwdi_m[i][j],fail_m[i][j] = self.mcdbdi_drought_real_time_v2(month, 
                                                                                          c_step * (i +1),
                                                                                          min_storage + s_step * (resolution - j)
                                                                                          )
-                
                 storage_array[j] = min_storage + s_step * j
-        
         return rfd_m, cwdi_m, fail_m, consumption_array, storage_array
 
-    
-    
     def sequential_calculation(self, month, consum_list, storage):
-        
-        
         def get_month(input_m):
-            
             if input_m % 12 == 0:
-                
                 return 12
-            
             else:
-                
                 return input_m % 12
-        
+            
         cta_record = []
         rfd_record = []
         wdi_record = []
         storage_record = []
         overflow_record = []
-        
-        
         for i in range(len(consum_list)):
-            
             if i == 0:
-            
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage
@@ -3937,9 +3833,7 @@ class dual_system_simulation:
                 wdi_record.append(wdi)
                 storage_record.append(end_storage)
                 overflow_record.append(overflow)
-            
             else:
-                
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage_record[i - 1]
@@ -3966,76 +3860,49 @@ class dual_system_simulation:
         
         return cta_record, wdi_record, rfd_record, storage_record, overflow_record
     
-    
     def sequential_mcdbdi_drought(self, month, consum_list, storage,
                                   simulation_time = 1000, wdi_c = 0.85):
-        
-        
         def get_month(m):
-            
             if m % 12 == 0:
                 return 12
             else:
                 return m % 12
         
         threshold_array = []
-        
         for i in range(len(consum_list)):
-            
             temp_threshold = self.rfd_threshold[get_month(month + i)]
             threshold_array.append(temp_threshold)
-        
         threshold_array = np.array(threshold_array)
-        
         threshold = np.mean(threshold_array)
         
         count_rfd = 0
         count_wdi = 0
         count_fail = 0
-        
         for i in range(simulation_time):
-            
             body = self.sequential_calculation(month, consum_list, storage)
             rfd_record = body[2]
             wdi_record = body[1]
-            
             rfd_mean = np.mean(rfd_record)
-            
             if rfd_mean > threshold : 
-                
                 count_rfd = count_rfd + 1
-            
             if np.median(wdi_record) > wdi_c:
-                
                 count_wdi = count_wdi + 1
-            
             if np.median(wdi_record) > wdi_c and rfd_mean > threshold:
-                
                 count_fail = count_fail + 1
-            
             else:
-                
                 continue
         
         prob_rfd = count_rfd / simulation_time
         prob_wdi = count_wdi / simulation_time
         prob_fail = count_fail / simulation_time
-        
         return prob_rfd, prob_wdi, prob_fail
-            
             
     def sequential_calculation_translate(self, month, consum_list, storage, 
                                          translate_list):
-        
-        
         def get_month(input_m):
-            
             if input_m % 12 == 0:
-                
                 return 12
-            
             else:
-                
                 return input_m % 12
         
         cta_record = []
@@ -4044,11 +3911,8 @@ class dual_system_simulation:
         storage_record = []
         overflow_record = []
         
-        
         for i in range(len(consum_list)):
-            
             if i == 0:
-            
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage
@@ -4068,9 +3932,7 @@ class dual_system_simulation:
                 wdi_record.append(wdi)
                 storage_record.append(end_storage)
                 overflow_record.append(overflow)
-            
             else:
-                
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage_record[i - 1]
@@ -4096,70 +3958,47 @@ class dual_system_simulation:
         wdi_record = np.array(wdi_record)
         storage_record = np.array(storage_record)
         overflow_record = np.array(overflow_record)
-        
         return cta_record, wdi_record, rfd_record, storage_record, overflow_record                
             
     def sequential_mcdbdi_drought_translate(self, month, consum_list, storage,
                                             translate_list,
                                             simulation_time = 1000,
                                             wdi_c = 0.85):
-        
-        
         def get_month(m):
-            
             if m % 12 == 0:
                 return 12
             else:
                 return m % 12
         
         threshold_array = []
-        
         for i in range(len(consum_list)):
-            
             temp_threshold = self.rfd_threshold[get_month(month + i)]
             threshold_array.append(temp_threshold)
-        
         threshold_array = np.array(threshold_array)
-        
         threshold = np.mean(threshold_array)
         
-        count_rfd = 0
-        count_wdi = 0
-        count_fail = 0
-        
+        count_rfd, count_wdi, count_fail = 0, 0, 0
         for i in range(simulation_time):
-            
             body = self.sequential_calculation_translate(month,
                                                          consum_list, 
                                                          storage,
                                                          translate_list)
             rfd_record = body[2]
             wdi_record = body[1]
-            
             rfd_mean = np.mean(rfd_record)
-            
             if rfd_mean > threshold : 
-                
                 count_rfd = count_rfd + 1
-            
             if np.median(wdi_record) > wdi_c:
-                
                 count_wdi = count_wdi + 1
-            
             if np.median(wdi_record) > wdi_c and rfd_mean > threshold:
-                
                 count_fail = count_fail + 1
-            
             else:
-                
                 continue
         
         prob_rfd = count_rfd / simulation_time
         prob_wdi = count_wdi / simulation_time
         prob_fail = count_fail / simulation_time
-        
         return prob_rfd, prob_wdi, prob_fail            
-
             
     def get_seasonal_risk_map_evolution(self,
                                         month,
@@ -4167,7 +4006,6 @@ class dual_system_simulation:
                                         max_storage,
                                         min_storage,
                                         resolution):
-        
         dis_property = self.inflow_dis_list[month - 1]
         name = dis_property[0]
         dis_param = dis_property[1]
@@ -4178,88 +4016,56 @@ class dual_system_simulation:
         af_storage_array = np.zeros(shape = resolution)
         
         c_step = consumption_limit / resolution
-        s_step = (max_storage - min_storage) / resolution 
-
+        s_step = (max_storage - min_storage) / resolution
 
         def determine_inflow(pre_storage, af_storage, consum):
-            
             inflow = pre_storage - af_storage + consum
             return inflow
 
         for i in range(resolution):
-            
             af_storage_array[i] = min_storage + s_step * i
-            
             for j in range(resolution):
-                
                 consumption_array[j] = c_step * (j + 1)
-                
                 for k in range(resolution):
-                    
                     pre_storage_array[k] = min_storage + s_step * k
                     consumption_array[k] = c_step * (k + 1)
                     data = determine_inflow(min_storage + s_step * (j),
                                             min_storage + s_step * (i),
                                             consumption_array[k])
-                    
                     probability_inflow = 1-self.hydrological_model.p_ar.parameter_distribution_transform(name,
                                                                                            dis_param,
                                                                                            data)
                     output_matrix[i][j][k] = probability_inflow
-                    
-        
         return output_matrix, consumption_array, pre_storage_array, af_storage_array
-
         
     def get_annual_inflow_simulation(self, sample_size = 50):
-        
-        monthly_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        
+        monthly_list = [[], [], [], [], [], [], [], [], [], [], [], []]
         for i in range(12):
-            
             for j in range(sample_size):
-                
                 inflow_array = self.hydrological_model.hydrological_simulation(i +1)[2]
                 inflow = np.sum(inflow_array)
                 monthly_list[i].append(inflow)
-        
         return np.array(monthly_list)
         
-
     def get_annual_es_simulation(self, sample_size = 50):
-        
-        monthly_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        
+        monthly_list = [[], [], [], [], [], [], [], [], [], [], [], []]
         for i in range(12):
-            
             for j in range(sample_size):
-                
-                es_array = self.hydrological_model.hydrological_simulation(i +1)[3]
+                es_array = self.hydrological_model.hydrological_simulation(i+1)[3]
                 es = np.sum(es_array)
                 monthly_list[i].append(es)
-        
         return np.array(monthly_list)
-
    
 def risk_map_read(file_path_riskmap_p):
-    
     output = []
     for i in range(12):
-        
-        file_path = file_path_riskmap_p+"risk_"+str(i+1)+".txt.npy"
+        file_path = f'{file_path_riskmap_p}risk_{str(i+1)}.txt.npy'
         temp = np.load(file_path)
         temp = np.rot90(temp.T)
         output.append(temp)
-        
     return np.array(output)
             
-            
-dual_system = dual_system_simulation(configs, 2, 0, 1)
-
-annual_riskmap = risk_map_read(configs['files']['riskmap_p'])
-
-
-def get_histogram_compare_p_history(data_list,his_data_list):
+def get_histogram_compare_p_history(data_list, his_data_list):
     
     
     for i in range(len(data_list)):
@@ -4285,8 +4091,7 @@ def get_histogram_compare_p_history(data_list,his_data_list):
         
         #axe.plot(X, hist_l.pdf(X), label = 'pdf')        
 
-
-def get_histogram_compare_t_history(data_list,his_data_list):
+def get_histogram_compare_t_history(data_list, his_data_list):
     
     
     for i in range(len(data_list)):
@@ -4312,8 +4117,7 @@ def get_histogram_compare_t_history(data_list,his_data_list):
         
         #axe.plot(X, hist_l.pdf(X), label = 'pdf') 
 
-
-def get_contour_diagram_risk_map(risk_map,i):
+def get_contour_diagram_risk_map(risk_map, i):
     
     rfd, cwdi, fail, c, s = risk_map
     
@@ -4329,7 +4133,6 @@ def get_contour_diagram_risk_map(risk_map,i):
     
     axe.contour(C,S,fail, 10)
     axe.clabel(axe.countour(C,S,fail, 10, frontsize = 9, inline = True))
-
 
 def get_contour_diagram_subplot(riskmap_plot):
     
@@ -4355,7 +4158,6 @@ def get_contour_diagram_subplot(riskmap_plot):
     plt.colorbar(plt.contourf(C,S, fail), cax = fig.add_axes([0.95,0.05,0.05,0.85]))
    # plt.tight_layout()
 
-
 def occurance_rate_change_under_map(riskmap_fail):
     
     output_list = []
@@ -4369,3 +4171,6 @@ def occurance_rate_change_under_map(riskmap_fail):
     
     return np.asarray(output_list, dtype = np.float64)
 
+dual_system = dual_system_simulation(configs, 2, 0, 1)
+
+annual_riskmap = risk_map_read(configs['files']['riskmap_p'])
