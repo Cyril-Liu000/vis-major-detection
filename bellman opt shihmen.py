@@ -87,7 +87,12 @@ def get_annual_risk_map(consumption_limit,
         output.append(temp)
 
     return np.array(output)
-        
+
+def get_policy(policy_name):
+    file_path = file_path_riskmap_p + "/policy/" + policy_name + ".npy"
+    output = np.load(file_path)
+    return output
+     
 class env_setting:
     def __init__(self, annual_risk_map, model_set, initial_storage, 
                  initial_month, demand_list ,c_punish_factor = 0, s_gain_factor = 0):
@@ -731,20 +736,27 @@ class water_management_evaluation:
         pf = risk_map[int(month - 1)][int(p_s_i)][int(c_i)]
         
         return (1-pf)*consumption_boundary, (consumption_boundary)/demand, next_storage
+
         
-    
-    def decision_under_given_policy(self, month, storage, inflow):
+    def decision_under_policy(self, month, storage, inflow):
         
         storage_indice = np.argmin(abs(model_set[1] - storage))
         policy = self.annual_policy[month - 1]
         consumption_indice = policy[storage_indice]
         consumption = model_set[0][int(consumption_indice)]
-        
         consumption_boundary = min(max(inflow + storage, 0), consumption)
-        c_i_b = np.argmin(abs(consumption_boundary - model_set[0]))        
-        consumption = model_set[0][min(c_i_b, consumption_indice)]
 
-        return consumption
+        return consumption_boundary
+    
+    def decision_under_given_policy(self, month, storage, inflow, policy,
+                                    change_correct):
+        storage_indice = np.argmin(abs(model_set[1] - storage))
+        policy = policy[month - 1]
+        consumption_indice = policy[storage_indice]
+        consumption = model_set[0][int(consumption_indice)]
+        consumption_boundary = min(max(inflow + storage + change_correct, 0),
+                                   consumption)
+        return consumption_boundary
         
     def twenty_year_simulation(self, month, initial_storage):
         
@@ -884,6 +896,413 @@ class water_management_evaluation:
             riii_record.append(riii)
         
         return np.array(ws_record), np.array(ri_record), np.array(riii_record)
+
+    def lamda_vis_calculation_under_policy(self, 
+                                           initial_month, 
+                                           initial_storage, 
+                                           inflow_series,
+                                           policy,
+                                           correction_series = 0,
+                                           correction_random = True):
+        def get_month(month):
+            if month % 12 == 0:
+                return 12
+            else:
+                return month%12
+        
+        policy_index_array = []
+        storage_index_array = []
+        failure_probability = []
+        policy_array = []
+        storage_array = []
+        m_p_ws = np.gradient(risk_map, axis = 1).T
+        m_p_c = np.gradient(risk_map, axis = 2)
+        m_p_t = np.gradient(risk_map, axis = 0)
+        lamda_array = []
+        vis_array = []
+        for i in range(len(inflow_series)):
+            if i == 0:
+                month = get_month(initial_month + i)
+                inflow = inflow_series[i]
+                storage = initial_storage
+                if correction_random == True:
+                    change_correct =  self.env.storage_change_correction(month, storage)
+                else:
+                    change_correct = correction_series[i]
+                consum = self.decision_under_given_policy(month, 
+                                                          storage, 
+                                                          inflow,
+                                                          policy,
+                                                          change_correct)
+                af_storage = self.env.storage_update(month, 
+                                                     storage, 
+                                                     consum, 
+                                                     inflow, 
+                                                     change_correct)
+                c_i = np.argmin(abs(consum - model_set[0]))
+                s_i = np.argmin(abs(storage - model_set[1]))
+                policy_index_array.append(c_i)
+                storage_index_array.append(s_i)
+                pf = risk_map[int(month - 1)][s_i][c_i]
+                failure_probability.append(pf)
+                policy_array.append(consum)
+                storage_array.append(storage)
+            else:
+                month = get_month(initial_month + i)
+                inflow = inflow_series[i]
+                storage = af_storage
+
+                if correction_random == True:
+                    change_correct =  self.env.storage_change_correction(month, storage)
+                else:
+                    change_correct = correction_series[i]
+                consum = self.decision_under_given_policy(month, 
+                                                          storage, 
+                                                          inflow,
+                                                          policy,
+                                                          change_correct)
+                af_storage = self.env.storage_update(month, 
+                                                     storage, 
+                                                     consum, 
+                                                     inflow, 
+                                                     change_correct)
+                c_i = np.argmin(abs(consum - model_set[0]))
+                s_i = np.argmin(abs(storage - model_set[1]))
+                policy_index_array.append(c_i)
+                storage_index_array.append(s_i)
+                pf = risk_map[int(month - 1)][s_i][c_i]
+                policy_array.append(consum)
+                storage_array.append(storage)
+    
+                b_c_i = policy_index_array[i-1]
+                b_s_i = storage_index_array[i-1]
+                p_c = m_p_c[int(month)-1]
+                p_ws = m_p_ws[int(month)-1]
+                c_s_i_c = np.argmin(abs(consum - model_set[1]))
+                c_s_i = min(min(c_s_i_c + b_s_i,19),0)
+                
+                c_i_change = policy_index_array[i] - policy_index_array[i-1]
+                lamda_policy = np.sum(p_ws[b_c_i][min(c_s_i, b_s_i): max(c_s_i, b_s_i)+1])           
+                lamda_policy_change = np.sign(c_i_change)*np.sum(p_c[b_s_i][min(c_i,b_c_i): max(c_i,b_c_i)+1])
+                lamda = lamda_policy_change - lamda_policy
+                lamda_array.append(lamda)
+                
+                p_t = m_p_t[int(month - 1)]
+                eff_in = inflow + change_correct
+                eff_in_s_i_c = np.argmin(abs(eff_in - model_set[1]))
+                eff_in_s_i = max(min(b_s_i + eff_in_s_i_c,19),0)
+                vis_season = p_t[s_i][c_i]
+                vis_eff_in = np.sum(p_ws[b_c_i][min(eff_in_s_i, b_s_i): max(eff_in_s_i, b_s_i)+1])
+                vis = vis_season + vis_eff_in
+                vis_array.append(vis)
+                failure_probability.append(pf)
+                
+        storage_array = np.array(storage_array)
+        failure_probability = np.array(failure_probability)
+        lamda_array = np.array(lamda_array)
+        dpf = np.gradient(failure_probability)
+        vis_array = np.array(vis_array)
+        return lamda_array, vis_array, failure_probability, dpf
+        
+    def lamda_vis_calculation(self, initial_month,
+                              initial_storage,
+                              inflow_series, 
+                              consum_series,
+                              correction_series = 0,
+                              correct_random = True):
+        
+        def get_month(month):
+            if month % 12 == 0:
+                return 12
+            else:
+                return month%12
+        
+        policy_index_array = []
+        storage_index_array = []
+        failure_probability = []
+        policy_array = []
+        storage_array = []
+        m_p_ws = np.gradient(risk_map, axis = 1).T
+        m_p_c = np.gradient(risk_map, axis = 2)
+        m_p_t = np.gradient(risk_map, axis = 0)
+
+        lamda_array = []
+        vis_array = []
+        for i in range(len(inflow_series)):
+            if i == 0:
+                month = get_month(initial_month + i)
+                inflow = inflow_series[i]
+                storage = initial_storage
+                consum = consum_series[i]
+                if correct_random == True:
+                    change_correct =  self.env.storage_change_correction(month, storage)
+                else:
+                    change_correct = correction_series[i]
+                af_storage = self.env.storage_update(month, 
+                                                     storage, 
+                                                     consum, 
+                                                     inflow, 
+                                                     change_correct)
+                c_i = np.argmin(abs(consum - model_set[0]))
+                s_i = np.argmin(abs(storage - model_set[1]))
+                policy_index_array.append(c_i)
+                storage_index_array.append(s_i)
+                pf = risk_map[int(month - 1)][s_i][c_i]
+                failure_probability.append(pf)
+                policy_array.append(consum)
+                storage_array.append(storage)
+            else:
+                month = get_month(initial_month + i)
+                inflow = inflow_series[i]
+                storage = af_storage
+                consum = consum_series[i]
+                if correct_random == True:
+                    change_correct =  self.env.storage_change_correction(month, storage)
+                else:
+                    change_correct = correction_series[i]
+                af_storage = self.env.storage_update(month, 
+                                                     storage, 
+                                                     consum, 
+                                                     inflow, 
+                                                     change_correct)
+                c_i = np.argmin(abs(consum - model_set[0]))
+                s_i = np.argmin(abs(storage - model_set[1]))
+                policy_index_array.append(c_i)
+                storage_index_array.append(s_i)
+                pf = risk_map[int(month - 1)][s_i][c_i]
+                policy_array.append(consum)
+                storage_array.append(storage)
+    
+                b_c_i = policy_index_array[i-1]
+                b_s_i = storage_index_array[i-1]
+                p_c = m_p_c[int(month)-1]
+                p_ws = m_p_ws[int(month)-1]
+                c_s_i_c = np.argmin(abs(consum - model_set[1]))
+                c_s_i = min(min(c_s_i_c + b_s_i,19),0)
+                
+                c_i_change = policy_index_array[i] - policy_index_array[i-1]
+                lamda_policy = np.sum(p_ws[b_c_i][min(c_s_i, b_s_i): max(c_s_i, b_s_i)+1])         
+                lamda_policy_change = np.sign(c_i_change)*np.sum(p_c[b_s_i][min(c_i,b_c_i): max(c_i,b_c_i)+1])
+                lamda = lamda_policy_change - lamda_policy
+                lamda_array.append(lamda)
+                
+                p_t = m_p_t[int(month - 1)]
+                eff_in = inflow + change_correct
+                eff_in_s_i_c = np.argmin(abs(eff_in - model_set[1]))
+                eff_in_s_i = max(min(b_s_i + eff_in_s_i_c,19),0)
+                vis_season = p_t[s_i][c_i]
+                vis_eff_in = np.sum(p_ws[b_c_i][min(eff_in_s_i, b_s_i): max(eff_in_s_i, b_s_i)+1])
+                vis = vis_season + vis_eff_in
+                vis_array.append(vis)
+                failure_probability.append(pf)
+                
+        storage_array = np.array(storage_array)
+        failure_probability = np.array(failure_probability)
+        lamda_array = np.array(lamda_array)
+        dpf = np.gradient(failure_probability)
+        vis_array = np.array(vis_array)
+        
+        return lamda_array, vis_array, failure_probability, dpf
+    
+    def lamda_and_vis_simulation_under_policy(self, 
+                                              initial_month, 
+                                              initial_storage, 
+                                              policy,
+                                              sample_len = 2,
+                                              simulation_time = 1000):
+        
+        def get_month(month):
+            if month % 12 == 0:
+                return 12
+            else:
+                return month % 12
+        
+        inflow_simulation = []
+        date_record = []
+        for i in range(sample_len):
+            month = get_month(initial_month + i)
+            date_record.append(month)
+            
+        for i in range(simulation_time):
+            temp_inflow = []
+            for j in range(sample_len):
+                month = get_month(initial_month + j)
+                temp_inflow.append(self.env.random_inflow(month))
+            inflow_simulation.append(temp_inflow)
+        
+        inflow_simulation = np.array(inflow_simulation)
+        dpf_simulation = []
+        lamda_simulation = []
+        vis_simulation = []
+        pf_simulation = []
+        for i in range(len(inflow_simulation)):
+            inflow_series = inflow_simulation[i]
+            lamda_array, vis_array, pf, dpf = self.lamda_vis_calculation_under_policy(initial_month, 
+                                                                                      initial_storage, 
+                                                                                      inflow_series,
+                                                                                      policy)
+            dpf_simulation.append(dpf)
+            lamda_simulation.append(lamda_array)
+            vis_simulation.append(vis_array)
+            pf_simulation.append(pf)
+        return np.array(lamda_simulation), np.array(vis_simulation), np.array(pf_simulation), date_record
+            
+    def lamda_and_vis_simulation(self, 
+                                 initial_month,
+                                 initial_storage, 
+                                 consum_series,
+                                 simulation_time = 1000):
+        
+        def get_month(month):
+            if month % 12 == 0:
+                return 12
+            else:
+                return month % 12
+        
+        inflow_simulation = []
+        date_record = []
+        for i in range(len(consum_series)):
+            month = get_month(initial_month + i)
+            date_record.append(month)
+        
+        for i in range(simulation_time):
+            temp_inflow = []
+            for j in range(len(consum_series)):
+                month = get_month(initial_month + j)
+                temp_inflow.append(self.env.random_inflow(month))
+            inflow_simulation.append(temp_inflow)
+        
+        inflow_simulation = np.array(inflow_simulation)
+        dpf_simulation = []
+        lamda_simulation = []
+        vis_simulation = []
+        pf_simulation = []
+        for i in range(len(inflow_simulation)):
+            inflow_series = inflow_simulation[i]
+            lamda_array, vis_array, pf, dpf = self.lamda_vis_calculation(initial_month, 
+                                                                         initial_storage, 
+                                                                         inflow_series,
+                                                                         consum_series)
+            dpf_simulation.append(dpf)
+            lamda_simulation.append(lamda_array)
+            vis_simulation.append(vis_array)
+            pf_simulation.append(pf)
+        return np.array(lamda_simulation), np.array(vis_simulation), np.array(pf_simulation), date_record                   
+
+    def evolution_historical_state(self,
+                                   date_series,
+                                   inflow_series, 
+                                   storage_series,
+                                   correction_series,
+                                   consumption_series):
+
+        m_p_t = np.gradient(risk_map, axis = 0)
+        m_p_ws = np.gradient(risk_map, axis = 1)
+        m_p_c = np.gradient(risk_map, axis = 2)
+        
+        def get_month(month):
+            if month % 12 == 0:
+                return 12
+            else:
+                return int(month % 12)
+
+        lamda_record = []
+        vis_record = []
+        pf_record = []
+        c_i_record = []
+        s_i_record = []
+        dpf_record = []
+    
+        for i in range(len(date_series)):
+            if i == 0:
+                storage = storage_series[i]
+                inflow = inflow_series[i]
+                correct = correction_series[i]
+                consum = consumption_series[i]
+                eff_in = inflow + correct
+                month = date_series[i].month
+                c_i = np.argmin(abs(consum - model_set[0]))
+                s_i = np.argmin(abs(storage - model_set[1]))
+                c_i_record.append(c_i)
+                s_i_record.append(s_i)
+                pf_record.append(risk_map[int(month)-1][int(s_i)][int(c_i)])        
+            else:
+                storage = storage_series[i]
+                inflow = inflow_series[i]
+                correct = correction_series[i]
+                consum = consumption_series[i]
+                eff_in = inflow + correct
+                month = date_series[i].month
+                c_i = np.argmin(abs(consum - model_set[0]))     
+                s_i = np.argmin(abs(storage - model_set[1]))
+                c_i_record.append(c_i)
+                s_i_record.append(s_i)
+            
+                b_s_i = s_i_record[i-1]
+                b_c_i = c_i_record[i-1]            
+            
+                c_s_i_c = np.argmin(abs(consum - model_set[1]))
+                c_s_i = max(min(c_s_i_c + b_s_i,19),0)
+                eff_s_i_c = np.argmin(abs(eff_in - model_set[1]))
+                eff_s_i = max(min(eff_s_i_c + b_s_i,19),0)
+            
+                p_t = m_p_t[month - 1][s_i][c_i]
+                p_ws = m_p_ws[month - 1].T
+                p_c = m_p_c[month - 1]
+            
+                vis_season = p_t
+                vis_eff_in = np.sum(p_ws[b_c_i][min(b_s_i, eff_s_i): max(b_s_i, eff_s_i)+1])
+                lamda_policy = np.sum(p_ws[b_c_i][min(b_s_i, c_s_i): max(b_s_i, c_s_i)+1])
+                lamda_policy_change = np.sign(c_i-b_c_i)*np.sum(p_c[b_s_i][min(b_c_i,c_i): max(b_c_i,c_i)+1])
+
+                vis = vis_season + vis_eff_in
+                lamda = lamda_policy_change - lamda_policy
+                lamda_record.append(lamda)
+                vis_record.append(vis)
+                pf_record.append(risk_map[int(month)-1][int(b_s_i)][int(b_c_i)])
+                dpf_record.append(lamda + vis)
+    
+        pf_record = np.array(pf_record)
+        dpf = np.array(dpf_record)
+        lamda_record = np.array(lamda_record)
+        vis_record = np.array(vis_record)       
+        return lamda_record, vis_record, pf_record, dpf
+
+    def historical_datum_of_lamda_vis(self, 
+                                      date_series,
+                                      inflow_series,
+                                      correct_series,
+                                      storage_series,
+                                      datum_policy
+                                      ):
+        expected_lamda_datum = []
+        lamda_datum = []
+        vis_datum = []
+        for i in range(len(date_series)-1):
+            initial_month = int(date_series[i].month)
+            initial_storage = storage_series[i]
+            temp_inflow = [inflow_series[i], inflow_series[i + 1]]
+            temp_correct = [correct_series[i], correct_series[i + 1]]
+            body = self.lamda_vis_calculation_under_policy(initial_month = initial_month,
+                                                           initial_storage = initial_storage, 
+                                                           inflow_series = temp_inflow, 
+                                                           policy = datum_policy,
+                                                           correction_series = temp_correct,
+                                                           correction_random = False)
+            lamda_datum.append(body[0][0])
+            
+            body_vis = self.lamda_and_vis_simulation_under_policy(initial_month = initial_month,
+                                                                  initial_storage = initial_storage,
+                                                                  policy = datum_policy,
+                                                                  simulation_time = 100)
+            lamda = body_vis[0]
+            vis = body_vis[1]
+            vis_datum.append(np.mean(vis))
+            expected_lamda_datum.append(np.mean(lamda))
+        return np.array(lamda_datum), np.array(vis_datum), np.array(expected_lamda_datum)
+    
+   
+    
 
 def drought_event_collection(result_data, demand_list):
     
@@ -1070,192 +1489,7 @@ def plot_drought_violin(plt_de_d, plt_de_m_ri, plt_de_m_riii):
     plot.show()
     plot.close()    
     
-    
-# =============================================================================
-# q_m_ri = opt_m.training_mdp(0)
-# q_s_ri = opt_s.training_mdp(0)
-# q_l_ri = opt_l.training_mdp(0)
-# q_m_rii = opt_m.training_mdp(1)
-# q_s_rii = opt_s.training_mdp(1)
-# q_l_rii = opt_l.training_mdp(1)
-# q_m_riii = opt_m.training_mdp(2)
-# q_s_riii = opt_s.training_mdp(2)
-# q_l_riii = opt_l.training_mdp(2)
-# =============================================================================
 
-# =============================================================================
-# policy_default = default_water_resoruce_policy()
-# policy_m_ri = np.argmax(q_m_ri[0], axis = 2)
-# policy_s_ri = np.argmax(q_s_ri[0], axis = 2)
-# policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
-# policy_m_riii = np.argmax(q_m_riii[0], axis = 2)
-# policy_s_riii = np.argmax(q_s_riii[0], axis = 2)
-# policy_l_riii = np.argmax(q_l_riii[0], axis = 2)     
-# policy_m_rii = np.argmax(q_m_rii[0], axis = 2)
-# policy_s_rii = np.argmax(q_s_rii[0], axis = 2)
-# policy_l_rii = np.argmax(q_l_rii[0], axis = 2)
-# 
-# eva_p_default = water_management_evaluation(policy_default, demand_list)
-# eva_p_m_ri = water_management_evaluation(policy_m_ri, demand_list)
-# eva_p_s_ri = water_management_evaluation(policy_s_ri, demand_list)
-# eva_p_l_ri = water_management_evaluation(policy_l_ri, demand_list)
-# eva_p_m_rii = water_management_evaluation(policy_m_rii, demand_list)
-# eva_p_s_rii = water_management_evaluation(policy_s_rii, demand_list)
-# eva_p_l_rii = water_management_evaluation(policy_l_rii, demand_list)      
-# eva_p_m_riii = water_management_evaluation(policy_m_riii, demand_list)
-# eva_p_s_riii = water_management_evaluation(policy_s_riii, demand_list)
-# eva_p_l_riii = water_management_evaluation(policy_l_riii, demand_list)        
-# =============================================================================
-
-# =============================================================================
-# result_default = eva_p_default.sampling_every_twenty_year(1,2200)
-# result_m_ri = eva_p_m_ri.sampling_every_twenty_year(1,2200)   
-# result_s_ri = eva_p_s_ri.sampling_every_twenty_year(1,2200)        
-# result_l_ri = eva_p_l_ri.sampling_every_twenty_year(1,2200)   
-# result_m_rii = eva_p_m_rii.sampling_every_twenty_year(1,2200)   
-# result_s_rii = eva_p_s_rii.sampling_every_twenty_year(1,2200)        
-# result_l_rii = eva_p_l_rii.sampling_every_twenty_year(1,2200)   
-# result_m_riii = eva_p_m_riii.sampling_every_twenty_year(1,2200)   
-# result_s_riii = eva_p_s_riii.sampling_every_twenty_year(1,2200)        
-# result_l_riii = eva_p_l_riii.sampling_every_twenty_year(1,2200)   
-# =============================================================================
-
-def probability_evolution_historical_state(date_series,
-                                           inflow_series, 
-                                           storage_series,
-                                           correction_series,
-                                           consumption_series):
-
-
-    consum_unit = abs(model_set[0][0] - model_set[0][1])
-    storage_unit = abs(model_set[1][0] - model_set[1][1])
-    
-    consumption_change = np.gradient(consumption_series)
-    m_p_t = np.gradient(risk_map, axis = 0)
-    m_p_ws = np.gradient(risk_map, axis = 1)
-    m_p_c = np.gradient(risk_map, axis = 2)
-        
-    def get_month_indice(month):
-        if month % 12 == 0:
-            return 11
-        else:
-            return int(month % 12 - 1)
-    
-    def get_indice(temp_change, model_set):
-        
-        if temp_change < 0:
-            return -1 *  min(max(np.argmin(abs(temp_change-model_set)),0),19)
-        else:
-            return min(max(np.argmin(abs(temp_change-model_set)),0),19)
-    
-    press_human_record = []
-    vis_major_record = []
-    dpf_record = []
-    pf_record = []
-    
-    for i in range(len(date_series)):
-        storage = storage_series[i]
-        inflow = inflow_series[i]
-        correct = correction_series[i]
-        consum = consumption_series[i]                                  
-        s_change = inflow - consum + correct
-        c_change = consumption_change[i]
-        month = date_series[i].month
-        next_month = get_month_indice(month + 1)
-
-        c_i = min(max(get_indice(consum, model_set[0]),0),19)
-        s_i = min(max(get_indice(storage, model_set[1]),0),19)
-        c_c_i = get_indice(c_change, model_set[0])
-        c_s_i = get_indice(s_change, model_set[0])
-        n_c_i = min(max(c_i + c_c_i,0),19)
-        n_s_i = min(max(s_i + c_s_i,0),19)
-        
-        p_t = m_p_t[month - 1][s_i][c_i]
-        p_ws = m_p_ws[next_month - 1].T
-        p_c = m_p_c[next_month - 1]
-        
-        if abs(n_s_i-s_i) == 0:
-            ws_step_vis = 0
-            ws_step_human = 0
-        else:
-            ws_step_vis = (np.sign(c_s_i)*model_set[1][abs(c_s_i)] + consum)/ abs(n_s_i-s_i)/storage_unit
-            ws_step_human = model_set[0][c_i]/abs(n_s_i-s_i)/storage_unit
-            
-        if abs(n_c_i-c_i) == 0:
-            c_step = 0 
-        else:
-            c_step = np.sign(c_c_i)*model_set[0][abs(c_c_i)]/abs(n_c_i-c_i)/consum_unit
-
-        seasonal_change = p_t
-        hydro_change = np.sign(c_s_i)*np.sum(p_ws[c_i][min(n_s_i, s_i): max(n_s_i, s_i)+1])*ws_step_vis
-        anthro_policy = np.sign(c_s_i)*np.sum(p_ws[c_i][min(n_s_i, s_i): max(n_s_i, s_i)+1])*ws_step_human
-        anthro_policy_c = np.sign(c_c_i)*np.sum(p_c[s_i][min(c_i,n_c_i): max(c_i,n_c_i)+1])*c_step
-        
-        vis_major = seasonal_change + hydro_change
-        press_human = anthro_policy - anthro_policy_c
-        dpf = vis_major - press_human
-        
-        press_human_record.append(press_human)
-        vis_major_record.append(vis_major)
-        dpf_record.append(dpf)
-        pf_record.append(risk_map[get_month_indice(month)][int(s_i)][int(c_i)])
-#######################################################################################        
-        
-    return np.array(press_human_record), np.array(vis_major_record), np.array(pf_record)
-
-
-# 262 - 286 1993 drought 1992 11 - 1994 07
-# 366 - 395 2002 drought 2001 09 - 2003 11
-# 456 - 472 2009 drought 2009 01 - 2010 05
-
-def draw_vis_major_plot(vis_major_record,
-                        rfd_series, 
-                        threshold_series, 
-                        cwdi_series,
-                        date_series,
-                        start, end):
-    
-    fig = plot.figure(figsize = (9,6))
-    spec = gridspec.GridSpec( nrows = 3, ncols = 1)
-    
-    fig.add_subplot(spec[0])   
-    
-    plot.plot(np.arange(len(vis_major_record[0][start:end])),
-            vis_major_record[0][start:end], 
-            label = chr(955), 
-            color = "r") 
-    plot.plot(np.arange(len(vis_major_record[1][start:end])),
-            vis_major_record[1][start:end],
-            label = "G",
-            color = "g")
-    plot.bar(np.arange(len(vis_major_record[2][start:end])),
-            vis_major_record[2][start:end],
-            label = "Pf",
-            color = "purple")
-    plot.xticks([])
-    plot.ylim((-5.5,1.5))
-    plot.legend()          
-
-    fig.add_subplot(spec[1])    
-    plot.bar(date_series[start:end], (threshold_series[start:end] - rfd_series[start:end])/ threshold_series[start:end],
-             color = "r", width = 5, label = "\u0394RFD / Threshold")
-    plot.axhline(0, color = "black", alpha = 0.5, linewidth = 0.5)
-    plot.ylabel("ratio")
-    plot.legend(loc = "upper left", bbox_to_anchor = (0.65,1))
-    plot.ylim((-1.5,1.5))
-    plot.xticks([])
-    plot.legend()       
-    
-    fig.add_subplot(spec[2])
-    
-    plot.plot(date_series[start:end], cwdi_series[start:end], color = "orange", label = "CWDI")
-    plot.axhline(0.85, color = "purple", linestyle = "--", label = "recovery criteria")
-    plot.xticks(rotation = -15)
-    plot.ylabel("CWDI")
-    plot.ylim((-0.1,1.1))
-    plot.legend(loc = "upper left", bbox_to_anchor = (0.02,0.75))    
-    
-    
 # =============================================================================
 # policy_ri_evaluation = eva_p_l_ri.resample_sequential_simulation(1, 2000, 12,
 #                                        simulation_time = 1000)
@@ -1647,6 +1881,174 @@ def get_contour_diagram_subplot(riskmap,
                  cax = cbar_ax)
     
 
+def get_event(date_series, rfd_series, threshold_series, cwdi_series):
+    fail_record = []
+    event = False
+    deficiency = []
+    temp_def = 0
+    event_record = []
+    temp_event = []
+    for i in range(len(date_series)):
+        if rfd_series[i] > threshold_series[i] and cwdi_series[i] > 0.85 and event == False:
+            fail_record.append(i)
+            event = True
+            temp_def += max(rfd_series[i], threshold_series[i])
+            temp_event.append(i)
+        elif rfd_series[i] <= threshold_series[i] and cwdi_series[i] <= 0.85 and event == True:
+            event = False
+            deficiency.append(temp_def)
+            temp_def = 0
+            event_record.append(np.array(temp_event))
+            temp_event = []
+        elif event == True:
+            fail_record.append(i)
+            temp_event.append(i)
+            temp_def += max(rfd_series[i], threshold_series[i])
+        else:
+            continue
+    return fail_record, deficiency, event_record
+
+def s_index_dateframe(storage_series, inflow_series, consum_series ,date_series):
+    
+    s_record = [[],[],[],[],[],[],[],[],[],[],[],[]]
+    i_record = [[],[],[],[],[],[],[],[],[],[],[],[]]
+    c_record = [[],[],[],[],[],[],[],[],[],[],[],[]]
+
+    for i in range(len(storage_series)):
+        for j in range(len(s_record)):
+            if date_series[i].month - 1 == j:
+                s_record[j].append(storage_series[i])
+                i_record[j].append(inflow_series[i])
+                c_record[j].append(consum_series[i])
+            else:
+                continue
+            
+    s_mean = []
+    s_std = []
+    c_mean = []
+    c_std = []
+    i_mean = []
+    i_std = []
+    for i in range(len(s_record)):
+        s_mean.append(np.mean(np.array(s_record[i])))
+        s_std.append(np.std(np.array(s_record[i])))        
+        i_mean.append(np.mean(np.array(i_record[i])))    
+        i_std.append(np.std(np.array(i_record[i])))    
+        c_mean.append(np.mean(np.array(c_record[i])))    
+        c_std.append(np.std(np.array(c_record[i])))
+    
+    ssi = []
+    sci = []
+    sii = []
+    for i in range(len(storage_series)):
+        for j in range(len(s_mean)):
+            if j == date_series[i].month - 1:
+                ssi.append((storage_series[i] - s_mean[j])/s_std[j])
+                sii.append((inflow_series[i] - i_mean[j])/i_std[j])                
+                sci.append((consum_series[i] - c_mean[j])/c_std[j])
+    
+    df = pd.DataFrame()
+    df.insert(loc = 0, column = "date", value = date_series)
+    df.insert(loc = 1, column = "ssi", value = np.array(ssi))
+    df.insert(loc = 2, column = "sci", value = np.array(sci))
+    df.insert(loc = 3, column = "sii", value = np.array(sii))
+    return df
+
+def draw_vis_major_plot(vis_major_record,
+                        rfd_series, 
+                        threshold_series, 
+                        cwdi_series,
+                        date_series,
+                        ssi,
+                        sci,
+                        sii,
+                        his_lamda_datum, 
+                        his_vis_datum,
+                        start, end):
+    
+    fig = plot.figure(figsize = (10,8), dpi = 600)
+    spec = gridspec.GridSpec( nrows = 4, ncols = 1)
+    lamda = vis_major_record[0]
+    vis = vis_major_record[1]
+    pf = vis_major_record[2]
+#    dpf = np.gradient(vis_major_record[2])
+    dpf = vis_major_record[3]
+    delta_lamda = lamda - his_lamda_datum
+    delta_vis = vis - his_vis_datum
+    
+    fig.add_subplot(spec[0])   
+    plot.plot(np.arange(len(lamda[start-1:end])),
+            lamda[start-1:end], 
+            label = chr(955), 
+            color = "r") 
+    plot.plot(np.arange(len(vis[start-1:end])),
+            vis[start-1:end],
+            label = "G",
+            color = "g")
+    plot.xticks([])
+    plot.legend() 
+    
+    fig.add_subplot(spec[1])
+    plot.bar(np.arange(len(delta_lamda[start - 1:end])),
+              delta_lamda[start-1:end],
+              label = "\u0394"+chr(955),
+              color = "r",
+              width = 0.25)
+    plot.bar(np.arange(len(delta_vis[start - 1: end]))+0.25,
+              delta_vis[start - 1: end],
+              label = "\u0394G",
+              color = "g",
+              width = 0.25)
+    plot.xticks([])
+    plot.legend()
+    
+    fig.add_subplot(spec[2])
+    plot.plot(np.arange(len(dpf[start-1:end])),
+              dpf[start-1:end],
+              label = "\u0394Pf",
+              color = "black")       
+    plot.bar(np.arange(len(pf[start:end])),
+            pf[start:end],
+            label = "Pf",
+            color = "purple")
+    plot.xticks([])
+    plot.legend() 
+    
+    fig.add_subplot(spec[3])
+    plot.plot(date_series[start:end],ssi[start:end],
+              color = "orange", linestyle = "--",label = "ssi")
+    plot.plot(date_series[start:end],sci[start:end], 
+              color = "red", linestyle = "--", label = "sci")
+    plot.plot(date_series[start:end],sii[start:end],
+              color = "blue", linestyle = "--", label = "sii")         
+    plot.xticks(rotation = -15)
+    plot.legend()
+    plot.ylabel("standardized index")
+    
+# =============================================================================
+#     fig.add_subplot(spec[2])    
+#     plot.bar(date_series[start+1:end],
+#              (threshold_series[start+1:end] - rfd_series[start+1:end])/ threshold_series[start+1:end],
+#              color = "r", width = 5, label = "\u0394RFD / Threshold")
+#     plot.axhline(0, color = "black", alpha = 0.5, linewidth = 0.5)
+#     plot.ylabel("ratio")
+#     plot.legend(loc = "upper left", bbox_to_anchor = (0.65,1))
+#     plot.ylim((-1.5,1.5))
+#     plot.xticks([])
+#     plot.legend()       
+#     
+#     fig.add_subplot(spec[3])
+#     plot.plot(date_series[start+1:end], cwdi_series[start+1:end], color = "orange", label = "CWDI")
+#     plot.axhline(0.85, color = "purple", linestyle = "--", label = "recovery criteria")
+#     plot.xticks(rotation = -15)
+#     plot.ylabel("CWDI")
+#     plot.ylim((-0.1,1.1))
+#     plot.legend(loc = "upper left", bbox_to_anchor = (0.02,0.75))  
+# =============================================================================
+
+
+
+
 if __name__ == "__main__":
     with open("./configs.json", encoding="utf-8") as f:
         configs = json.load(f)
@@ -1681,12 +2083,6 @@ if __name__ == "__main__":
     rfd_series = df_r["rfd"]
     threshold_series = df_r["threshold"]
     cwdi_series = df_r["cwdi"]
-
-    vis_major_record = probability_evolution_historical_state(date_series,
-                                                   inflow_series,
-                                                   storage_series,
-                                                   correction_series,
-                                                   consumption_series)  
     
     q_l_ri = opt_l.training_mdp(0)
     policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
