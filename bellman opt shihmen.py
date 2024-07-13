@@ -89,7 +89,7 @@ def get_annual_risk_map(consumption_limit,
     return np.array(output)
 
 def get_policy(policy_name):
-    file_path = file_path_riskmap_p + "/policy/" + policy_name + ".npy"
+    file_path = "./results/policy/" + policy_name + ".npy"
     output = np.load(file_path)
     return output
      
@@ -850,7 +850,8 @@ class water_management_evaluation:
                 inflow = self.env.random_inflow(month)
                 es = self.env.random_es(month)
                 storage = initial_storage
-                consum = self.decision_under_given_policy(month, storage, inflow)
+                # consum = self.decision_under_given_policy(month, storage, inflow)
+                consum = self.decision_under_policy(month, storage, inflow)
                 reward_i, reward_iii, next_storage = self.policy_reward_update(month,
                                                                                storage,
                                                                                consum,
@@ -865,7 +866,7 @@ class water_management_evaluation:
                 inflow = self.env.random_inflow(month)
                 es = self.env.random_es(month)
                 storage = next_storage
-                consum = self.decision_under_given_policy(month, storage, inflow)
+                consum = self.decision_under_policy(month, storage, inflow)
                 reward_i, reward_iii, next_storage = self.policy_reward_update(month,
                                                                                storage,
                                                                                consum,
@@ -1302,8 +1303,6 @@ class water_management_evaluation:
         return np.array(lamda_datum), np.array(vis_datum), np.array(expected_lamda_datum)
     
    
-    
-
 def drought_event_collection(result_data, demand_list):
     
     event_occurrence = []
@@ -1605,6 +1604,7 @@ def draw_evaluation(policy_ri_evaluation,
         i += 1
     plot.xticks([1,2,3], labels = labels)
     plot.ylabel("satisfied demand (%)")
+    plot.show()
     
 
 def get_historical_state_under_given_policy(date_series,
@@ -2046,9 +2046,6 @@ def draw_vis_major_plot(vis_major_record,
 #     plot.legend(loc = "upper left", bbox_to_anchor = (0.02,0.75))  
 # =============================================================================
 
-
-
-
 if __name__ == "__main__":
     with open("./configs.json", encoding="utf-8") as f:
         configs = json.load(f)
@@ -2066,14 +2063,14 @@ if __name__ == "__main__":
 
     demand_list = get_demand(configs['files']['data_sheet'])
 
-    opt_s = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
-                 discount_factors[0])
+    # opt_s = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
+    #              discount_factors[0])
 
-    opt_m = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
-                    discount_factors[1])
+    # opt_m = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
+    #                 discount_factors[1])
 
-    opt_l = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
-                    discount_factors[2])
+    # opt_l = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
+    #                 discount_factors[2])
     
     date_series = df_r["date"]
     inflow_series = df_r["inflow"]
@@ -2084,5 +2081,16 @@ if __name__ == "__main__":
     threshold_series = df_r["threshold"]
     cwdi_series = df_r["cwdi"]
     
-    q_l_ri = opt_l.training_mdp(0)
-    policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
+    # q_l_ri = opt_l.training_mdp(0)
+    # policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
+
+    policy_l_ri = get_policy('policy_l_ri')
+    policy_l_riii = get_policy('policy_l_riii')
+    policy_default = get_policy('policy_default')
+    wme = water_management_evaluation(policy_l_ri, demand_list)
+    wme_result_1 = wme.resample_sequential_simulation(1, 2000, 12, simulation_time = 1000)
+    wme = water_management_evaluation(policy_l_riii, demand_list)
+    wme_result_3 = wme.resample_sequential_simulation(1, 2000, 12, simulation_time = 1000)
+    wme = water_management_evaluation(policy_default, demand_list)
+    wme_result_default = wme.resample_sequential_simulation(1, 2000, 12, simulation_time = 1000)
+    draw_evaluation(wme_result_1, wme_result_3, wme_result_default)

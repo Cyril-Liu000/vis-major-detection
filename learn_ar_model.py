@@ -14,8 +14,7 @@ import json
 with open("./configs.json", encoding="utf-8") as f:
     configs = json.load(f)
 
-class read_inflow_estimate_data:
-    
+class read_inflow_estimate_data: 
     def __init__(self, files):
         self.file_path = files['total_data']
         self.file_parh_tem = files['tem']
@@ -541,11 +540,11 @@ class read_inflow_estimate_data:
         rfd = np.array(pd.Series(df["RFD"]))
         threshold = np.array(pd.Series(df["RFD_his"]))
         cwdi = np.array(pd.Series(df["WDI"]))
+        imsrri_6 = np.array(pd.Series(df["IMSRRI_6"]))
+        imsrri_12 = np.array(pd.Series(df["IMSRRI_12"]))
         
         de_storage = np.gradient(storage)
         outflow_record = []
-        
-        
         for i in range(len(de_storage)):
             
             if inflow_d[i] - consumption[i] > 3000 - storage[i]:
@@ -559,7 +558,6 @@ class read_inflow_estimate_data:
         
         change = inflow - consumption
         outflow_record = np.array(outflow_record)
-        
         df_r.insert(loc = 0, column = "date", value = date_series)
         df_r.insert(loc = 1, column = "storage", value = storage)
         df_r.insert(loc = 2, column = "de_storage", value = de_storage)
@@ -571,10 +569,11 @@ class read_inflow_estimate_data:
         df_r.insert(loc = 8, column = "rfd", value = rfd)
         df_r.insert(loc = 9, column = "cwdi", value = cwdi)
         df_r.insert(loc = 10, column = "threshold", value = threshold)
+        df_r.insert(loc = 11, column = "imsrri_6", value = imsrri_6)
+        df_r.insert(loc = 12, column = "imsrri_12", value = imsrri_12)
         df_r = df_r.dropna()
         df_r = df_r.reset_index(drop = True)        
-        
-        return df_r  
+        return df_r
          
 
 class hydraulic_freq_analyse:
