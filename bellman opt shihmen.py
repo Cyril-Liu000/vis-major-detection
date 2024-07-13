@@ -2081,8 +2081,8 @@ if __name__ == "__main__":
     threshold_series = df_r["threshold"]
     cwdi_series = df_r["cwdi"]
     
-    # q_l_ri = opt_l.training_mdp(0)
-    # policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
+    q_l_ri = opt_l.training_mdp(0)
+    policy_l_ri = np.argmax(q_l_ri[0], axis = 2)
 
     policy_l_ri = get_policy('policy_l_ri')
     policy_l_riii = get_policy('policy_l_riii')
@@ -2094,3 +2094,22 @@ if __name__ == "__main__":
     wme = water_management_evaluation(policy_default, demand_list)
     wme_result_default = wme.resample_sequential_simulation(1, 2000, 12, simulation_time = 1000)
     draw_evaluation(wme_result_1, wme_result_3, wme_result_default)
+
+    # dfs = s_index_dateframe(storage_series, inflow_series, consumption_series ,date_series)
+    # ssi = dfs["ssi"]
+    # sci = dfs["sci"]
+    # sii = dfs["sii"]
+    # policy_l_ri = get_policy("policy_l_ri")
+    # policy_l_riii = get_policy("policy_l_riii")
+    # policy_default = get_policy("policy_default")
+    # eva_p_l_ri = water_management_evaluation(policy_l_ri, demand_list)
+    # vis_major_record = eva_p_l_ri.evolution_historical_state(date_series,
+    #                                                 inflow_series,
+    #                                                 storage_series,
+    #                                                 correction_series,
+    #                                                 consumption_series)
+    # vis_major_datum = eva_p_l_ri.historical_datum_of_lamda_vis(date_series,
+    #                                                             inflow_series,
+    #                                                             correction_series,
+    #                                                             storage_series,
+    #                                                             policy_l_ri)
