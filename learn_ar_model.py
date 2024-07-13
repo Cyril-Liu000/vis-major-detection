@@ -1273,23 +1273,17 @@ class temperature_ar_model:
         return output_list
 
 class precipitation_ar_model:
-    
     def __init__(self, rainy_day_list, rainfall_amount_list, log_list = False):
-        
         self.rainy_day_list = rainy_day_list
         self.rainfall_amount_list = rainfall_amount_list
-        
         rainy_day_hf = hydraulic_freq_analyse(rainy_day_list, log_list = log_list)
         rainfall_amount_hf = hydraulic_freq_analyse(rainfall_amount_list, log_list = log_list)
-        
         self.rainy_day_af = rainy_day_hf
         self.rainfall_amount_hf = rainfall_amount_hf
-        
         rainfall_distribution_list = self.rainfall_amount_hf.get_suitable_distribution_list()
         rainfall_statproperty_list = self.rainfall_amount_hf.property_list
         rainy_distribution_list = self.rainy_day_af.get_suitable_distribution_list()
         self.rainy_statproperty_list = self.rainy_day_af.property_list
-        
         
         self.rainfall_distribution_list = rainfall_distribution_list
         self.rainy_distribution_list = rainy_distribution_list
@@ -1310,391 +1304,243 @@ class precipitation_ar_model:
         self.model_params_norm = self.cdf_ar_model_norm()
         self.model_params_nt = self.cdf_ar_model_nt()
         
-        
-
-####### initial_sample 
-        
     def get_multinormal_cov(self, acf, std, n_lag):
-        
         array_list = []
-        
         for i in range(n_lag):
             temp_list = []
-            
             for j in range(n_lag):
-                
                 for k in range(n_lag):
-                    
                     if abs(j-i) == k:
-                        
-                        temp = std*std*acf[k]
+                        temp = std * std * acf[k]
                         temp_list = temp
-                        
             array_list.append(temp_list)
         cov = np.asarray(array_list, dtype = np.float64)
-        
         return cov
 
-
     def get_multinormal_mean(self, mean, n_lag):
-        
-        
         array_list = []
-        
         for i in range(n_lag):
-            
             array_list.append(mean)
-        
         mean_vector = np.array(array_list,dtype = np.float64)
-        
         return mean_vector
         
-        
-        
     def get_initial_sample(self, mean, std, n_lag, acf):
-        
         cov = self.get_multinormal_cov(acf, std, n_lag)
         mean = self.get_multinormal_mean(mean, n_lag)
-        
         initial = st.multivariate_normal.rvs(mean = mean, cov = cov)
-        
         return initial
     
-    
     def get_white_noise_property(self, ar_model_params, acf, std, n_lag):
-        
         constant = 1
         for i in range(1,n_lag + 1):
-            
             temp = acf[i] * ar_model_params[i]
             constant = constant - temp
-        
-        
-        nois_std = np.sqrt(constant * std*std) 
-        
+        nois_std = np.sqrt(constant * std * std)
         return np.asarray( [0, nois_std] ,dtype = np.float64)
 
-
-#####################################################################
-    
     def cdf_property_list(self):
-        
         cdf_list = self.his_cdf_list
         output_list = []
-        
         for i in range(len(cdf_list)):
-            
             temp = [np.mean(cdf_list[i]), np.std(cdf_list[i]), st.skew(cdf_list[i])]
             output_list.append(temp)
-            
         return output_list
-
 
     def cdf_property_list_norm(self):
-        
-        
         cdf_list = self.his_cdf_list_norm
         output_list = []
-        
         for i in range(len(cdf_list)):
-            
             temp = [np.mean(cdf_list[i]), np.std(cdf_list[i]), st.skew(cdf_list[i])]
             output_list.append(temp)
-            
         return output_list
         
-        
     def parameter_distribution_transform(self, name, dis_param, data):
-        
         if name == 'norm':
-            
             return st.norm.cdf(data,
                                loc = dis_param[0],
                                scale = dis_param[1])
-        
         elif name == 'gamma':
-            
             return st.gamma.cdf(data, 
                                 a = dis_param[0],
                                 loc = dis_param[1], 
                                 scale = dis_param[2])
-        
-        elif name == 'pearson3' :
-            
+        elif name == 'pearson3':
             return st.pearson3.cdf(data,  
                                    skew = dis_param[0],
                                    loc = dis_param[1],
                                    scale = dis_param[2])
-        
-        elif name == 'gumbel_r'  :
-            
+        elif name == 'gumbel_r':
             return st.gumbel_r.cdf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        
-        elif name == 'gumbel_l'  :
-            
+        elif name == 'gumbel_l':
             return st.gumbel_l.cdf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        
-        elif name == 'lognorm' :
-            
+        elif name == 'lognorm':
             return st.lognorm.cdf(data,
                                   s = dis_param[0],
                                   loc = dis_param[1],
                                   scale = dis_param[2])
-        
-        elif name == 'loggamma' :
-            
+        elif name == 'loggamma':
             return st.loggamma.cdf(data,
                                    c = dis_param[0],
                                    loc = dis_param[1], 
                                    scale = dis_param[2])
         
-        
     def ppf_transform(self, name, dis_param, data):
-        
         if name == 'norm':
-            
             return st.norm.ppf(data,
                                loc = dis_param[0],
                                scale = dis_param[1])
         elif name == 'gamma':
-            
             return st.gamma.ppf(data, 
                                 a = dis_param[0],
                                 loc = dis_param[1], 
                                 scale = dis_param[2])
-        
-        elif name == 'pearson3' :
-            
+        elif name == 'pearson3':
             return st.pearson3.ppf(data,  
                                    skew = dis_param[0],
                                    loc = dis_param[1],
                                    scale = dis_param[2])
-        
-        elif name == 'gumbel_r'  :
-            
+        elif name == 'gumbel_r':
             return st.gumbel_r.ppf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        
-        elif name == 'gumbel_l'  :
-            
+        elif name == 'gumbel_l':
             return st.gumbel_l.ppf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        
-        
-        elif name == 'lognorm' :
-            
+        elif name == 'lognorm':
             return st.lognorm.ppf(data,
                                   s = dis_param[0],
                                   loc = dis_param[1],
                                   scale = dis_param[2])
-        
-        elif name == 'loggamma' :
-            
+        elif name == 'loggamma':
             return st.loggamma.ppf(data,
                                    c = dis_param[0],
                                    loc = dis_param[1], 
                                    scale = dis_param[2])
-            
         
     def CDF_input_data_list(self):
-        
         array_list = self.rainy_day_list
         body = self.rainy_distribution_list
-        
         output_list = []
-        
         for i in range(len(array_list)):
-            
             name = body[i][0]
             dis_param = body[i][1]
             data = array_list[i]
-        
             temp = self.parameter_distribution_transform(name, dis_param, data)
             output_list.append(temp)
-        
         return output_list
 
-
     def CDF_input_data_list_norm(self):
-        
         array_list = self.rainy_day_list
         body = self.rainy_statproperty_list
         output_list = []
-        
-        
         for i in range(len(array_list)):
-            
             name = "norm"
             dis_param = [body[i][0], body[i][1]]
             data = array_list[i]
-        
             temp = self.parameter_distribution_transform(name, dis_param, data)
             output_list.append(temp)
-        
         return output_list
- 
     
     def n_lag_list(self):
-        
         data_list = self.his_cdf_list
         n_lag_list = []
-        
         for i in range(len(data_list)):
-            
             temp_lag_array = tsa.pacf_yw(data_list[i])
-            
             for j in range(len(temp_lag_array)):
-                
                 if abs(temp_lag_array[j]) <= 1.96 / np.sqrt(len(temp_lag_array)) :
-                    
                     n_lag = j + 1
                     break
-                
                 else:
                     continue
-            
             n_lag_list.append(n_lag)
-        
         return n_lag_list
     
     def n_lag_list_nt(self):
-        
         data_list = self.rainy_day_list
         n_lag_list = []
-        
         for i in range(len(data_list)):
-            
             temp_lag_array = tsa.pacf_yw(data_list[i])
-            
             for j in range(len(temp_lag_array)):
-                
-                if abs(temp_lag_array[j]) <= 1.96 / np.sqrt(len(temp_lag_array)) :
-                    
+                if abs(temp_lag_array[j]) <= 1.96 / np.sqrt(len(temp_lag_array)):
                     n_lag = j + 1
                     break
-                
                 else:
                     continue
-            
             n_lag_list.append(n_lag)
-        
         return n_lag_list
     
-
-
-    
     def acf_list(self):
-        
         data_list = self.his_cdf_list
         output_list = []
-        
         for i in range(len(data_list)):
-            
              temp_acf = tsa.acf(data_list[i])
              output_list.append(temp_acf)
-             
         return output_list
 
-
     def acf_list_nt(self):
-        
         data_list = self.rainy_day_list
         output_list = []
-        
         for i in range(len(data_list)):
-            
              temp_acf = tsa.acf(data_list[i])
              output_list.append(temp_acf)
-             
-        return output_list            
-
-## revise stasts.arima_model(order[n_lag + 1])           
+        return output_list                   
         
     def cdf_ar_model(self):
-        
         model_list = []
         cdf_array_list = self.his_cdf_list
-        
-        
         for i in range(len(cdf_array_list)):
-            
             data_series = cdf_array_list[i]
             n_lag = self.n_lag_list[i]
             # model = stastsa.arima_model.ARIMA(data_series 
             #                                   ,order = [n_lag-1,0,0])
             model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
-            
             fitting = model.fit()
             fitting_params_p = fitting.params
             model_list.append(fitting_params_p)
-        
         return model_list
-
-
-## revise stasts.arima_model(order[n_lag + 1])       
+      
     def cdf_ar_model_norm(self):
-        
         model_list = []
         cdf_array_list = self.his_cdf_list_norm
-        
-        
         for i in range(len(cdf_array_list)):
-            
             data_series = cdf_array_list[i]
             n_lag = self.n_lag_list[i]
             # model = stastsa.arima_model.ARIMA(data_series 
             #                                   ,order = [n_lag-1,0,0])
             model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
-            
             fitting = model.fit()
             fitting_params_p = fitting.params
             model_list.append(fitting_params_p)
-        
-        return model_list
-
-## revise stasts.arima_model(order[n_lag + 1])   
+        return model_list 
     
     def cdf_ar_model_nt(self):
-        
         model_list = []
         array_list = self.rainy_day_list
-        
         for i in range(len(array_list)):
-            
             data_series = array_list[i]
             n_lag = self.n_lag_list[i]
             # model = stastsa.arima_model.ARIMA(data_series 
             #                                   ,order = [n_lag-1,0,0])
             model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
-            
             fitting = model.fit()
             fitting_params_p = fitting.params
             model_list.append(fitting_params_p)
-        
         return model_list
 
-
     def get_monthly_cdf_series_sampling_nt(self, month):
-        
         mean, std, skewness, kurt = self.rainy_statproperty_list[month - 1]
-        
         acf = self.acf_list_nt[month - 1]
         n_lag = self.n_lag_list_nt[month - 1]
         params = self.model_params_nt[month - 1]
-        
-        
+
         def month_day(month):
-            
             month_list = [31,28,31,30,31,30,31,31,30,31,30,31]
-            
             return month_list[month - 1]
-        
         
         initial = self.get_initial_sample(mean, std, n_lag, acf)
         mean_array = params[0] * np.ones(n_lag)
@@ -1705,21 +1551,14 @@ class precipitation_ar_model:
         
         simulation_time = month_day(month) - n_lag
         output_array = initial
-        
-        #a_cc = 1 / (1 + (noise_params[1] / std)**2 + (std * skew)**2)
-        
     
         for i in range(simulation_time):
-            
             if i == 0 :
-                
                 next_step = np.dot(initial_pa, params) + st.norm.rvs(loc = noise_params[0],
                                                                     scale = noise_params[1], 
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array), axis = None)
-                
-            else :
-                
+            else:
                 temp_array = output_array[i: i + n_lag]
                 temp_array = temp_array 
                 temp_array = np.hstack((np.array(1), temp_array))
@@ -1727,28 +1566,18 @@ class precipitation_ar_model:
                                                                     scale = noise_params[1],
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array),axis = None)
-        
         output_array_v = st.norm.cdf(output_array, loc = mean, scale = std)
-        
         return output_array_v
 
-
-
-
     def get_monthly_cdf_series_sampling(self, month):
-        
         mean, std, skew = self.cdf_property_list[month - 1]
         acf = self.cdf_acf_list[month - 1]
         n_lag = self.n_lag_list[month - 1]
         params = self.model_params[month - 1]
         
         def month_day(month):
-            
             month_list = [31,28,31,30,31,30,31,31,30,31,30,31]
-            
             return month_list[month - 1]
-        
-        
         
         initial = self.get_initial_sample(mean, std, n_lag, acf)
         mean_array = params[0] * np.ones(n_lag)
@@ -1761,16 +1590,12 @@ class precipitation_ar_model:
         output_array = initial
         
         for i in range(simulation_time):
-            
             if i == 0 :
-                
                 next_step = np.dot(initial_pa, params) + st.norm.rvs(loc = noise_params[0],
                                                                     scale = noise_params[1], 
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array), axis = None)
-                
-            else :
-                
+            else:
                 temp_array = output_array[i: i + n_lag]
                 temp_array = temp_array 
                 temp_array = np.hstack((np.array(1), temp_array))
@@ -1779,26 +1604,18 @@ class precipitation_ar_model:
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array),axis = None)
         
-        
         output_array_v = st.norm.cdf(output_array, loc = mean, scale = std)
-        
         return output_array_v
-
     
     def get_monthly_cdf_series_sampling_norm(self, month):
-        
         mean, std, skew = self.cdf_property_list_norm[month - 1]
         acf = self.cdf_acf_list[month - 1]
         n_lag = self.n_lag_list[month - 1]
         params = self.model_params_norm[month - 1]
         
         def month_day(month):
-            
             month_list = [31,28,31,30,31,30,31,31,30,31,30,31]
-            
             return month_list[month - 1]
-        
-        
         
         initial = self.get_initial_sample(mean, std, n_lag, acf)
         mean_array = params[0] * np.ones(n_lag)
@@ -1810,18 +1627,13 @@ class precipitation_ar_model:
         simulation_time = month_day(month) - n_lag
         output_array = initial
         
-        
         for i in range(simulation_time):
-            
             if i == 0 :
-                
                 next_step = np.dot(initial_pa, params) + st.norm.rvs(loc = noise_params[0],
                                                                     scale = noise_params[1], 
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array), axis = None)
-                
-            else :
-                
+            else:
                 temp_array = output_array[i: i + n_lag]
                 temp_array = temp_array 
                 temp_array = np.hstack((np.array(1), temp_array))
@@ -1830,17 +1642,10 @@ class precipitation_ar_model:
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array),axis = None)
         
-        
-         
         output_array_v = st.norm.cdf(output_array, loc = mean, scale = std)
-        
-        
         return output_array_v
 
-
-
     def get_precipitation_sampling_v1(self, month):
-        
         cdf_series = self.get_monthly_cdf_series_sampling(month)
         body = self.rainfall_distribution_list[month - 1]
         truncated_value = 1 - self.rainy_statproperty_list[month - 1][0]
@@ -1850,17 +1655,11 @@ class precipitation_ar_model:
         
         name = body[0]
         dis_param = body[1]
-        #minmum = np.min(self.ppf_transform(name, dis_param, r_cdf_series))
-        
-        
         output = self.ppf_transform(name, dis_param, r_cdf_series)
         output[output <= 0.06] = 0
-        
-        return output    
-
+        return output
 
     def get_precipitation_sampling_v2(self, month):
-        
         cdf_series = self.get_monthly_cdf_series_sampling_norm(month)
         body = self.rainfall_distribution_list[month - 1]
         truncated_value = 1 - self.rainy_statproperty_list[month - 1][0]
@@ -1874,12 +1673,9 @@ class precipitation_ar_model:
         
         output = self.ppf_transform(name, dis_param, r_cdf_series)
         output[output <= 0.06] = 0
-        
         return output  
 
-## udate parameters ###
     def get_precipitation_sampling_v3(self, month):
-        
         cdf_series = self.get_monthly_cdf_series_sampling_nt(month)
         body = self.rainfall_distribution_list[month - 1]
         truncated_value = 1 - self.rainy_statproperty_list[month - 1][0]
@@ -1893,91 +1689,56 @@ class precipitation_ar_model:
         
         output = self.ppf_transform(name, dis_param, r_cdf_series)
         output[output <= 0.06] = 0
-        
         return output
 
-
     def check_precipitation_sampling_mean(self, month, times = 1000):
-        
         test = 0
-        
         for i in range(times):
-            
             temp = np.mean(self.get_precipitation_sampling_v1(month))
             test = test + temp
-        
         ## Replace the Version of self.get_precipitation_sampling() 
         return test / times
     
-    
     def check_precipitation_sampling_acf(self, month, times = 1000):
-        
         array = []
-        
         for i in range(1000):
-            
             temp = self.get_precipitation_sampling_v1(month)
             array.append(temp)
-        
         array = np.array(array)
         array = array.flatten()
-        
         return tsa.pacf(array)
     
-    
-    
     def check_sampling_stat(self, times = 1000):
-        
         mean = []
         acf = []
-        
         for i in range(12):
-            
             mean.append(self.check_precipitation_sampling_mean(i + 1))
             acf.append(self.check_precipitation_sampling_acf(i + 1 )[0 : 4])
-    
         return mean, acf            
     
-    
     def generate_monthly_precipitation_simulation(self, time = 1000):
-        
         output_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        
         for i in range(len(output_list)):
-            
             month_array = []
-            
             for j in range(time):
-                
                 temp = self.get_precipitation_sampling_v1(i + 1)
                 month_array.append(temp)
-            
             month_array = np.array(month_array)
             month_array = month_array.flatten()
-            
             output_list[i] = month_array
-        
         return output_list
 
-
     def generate_monthly_precipitation_simulation_v2(self, time = 1000):
-        
-        output_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        
+        output_list = [[],[],[],[],[],[],[],[],[],[],[],[]] 
         for i in range(len(output_list)):
-            
             month_array = []
-            
             for j in range(time):
-                
                 temp = self.get_precipitation_sampling_v2(i + 1)
                 month_array.append(temp)
             
             month_array = np.array(month_array)
             month_array = month_array.flatten()
-            
             output_list[i] = month_array
-        
         return output_list        
         
 class inflow_estimate:
@@ -2553,68 +2314,44 @@ class statistic_preparing:
             return self.lognorm_stats()
 
 class climate_hydrological_simulation:
-    
-    
     def __init__(self, configs):
-        
         rd = read_inflow_estimate_data(configs['files'])
-        
         self.precipitation_record_list = rd.get_month_daily_precipitation_data()
         p_data_body = rd.get_month_daily_precipitation_data_v2()
-        
         self.precipitation_binirization = p_data_body[0]
         self.precipitation_excluded_zero = p_data_body[1]
-        
         self.temperature_record_list = rd.get_month_temperature_data()
-        
         self.p_ar = precipitation_ar_model(self.precipitation_binirization,
                                            self.precipitation_excluded_zero)
-        
         self.t_ar = temperature_ar_model(self.temperature_record_list)
         
-
     def generate_date_series(self, month):
-        
-        
         day_list = [31,28,31,30,31,30,31,31,30,31,30,31]
         year = datetime.datetime.now().year
         start = str(year) + '/' + str(month) +'/'+ '1'
         end = str(year) + '/' + str(month) +'/'+ str(day_list[month - 1])
-        
         date_range = pd.date_range(start,end, freq = 'D')
-        
         date_series = pd.Series(date_range)
-        
         return date_series
     
-    
     def hydrological_simulation(self, month):
-        
         date_series = self.generate_date_series(month)
         precipitation_series = self.p_ar.get_precipitation_sampling_v1(month)/10
         temperature_series = self.t_ar.get_temperature_sampling(month)
-        
         model = inflow_estimate(date_series,
                                 precipitation_series, 
                                 temperature_series)
-        
         streamflow, evapotranspiration = model.Mega_physical_model_v3()
-        
         return temperature_series, precipitation_series, streamflow, evapotranspiration
         
-        
     def hydrological_simulation_v2(self, month):
-        
         date_series = self.generate_date_series(month)
         precipitation_series = self.p_ar.get_precipitation_sampling_v2(month)/10
         temperature_series = self.t_ar.get_temperature_sampling(month)
-        
         model = inflow_estimate(date_series,
                                 precipitation_series, 
                                 temperature_series)
-        
         streamflow, evapotranspiration = model.Mega_physical_model_v3()
-        
         return temperature_series, precipitation_series, streamflow, evapotranspiration        
         
 class catcharea_state:
@@ -3619,11 +3356,8 @@ class dual_system_simulation:
         self.dual_system_update = catcharea_state(up_target_storage_limit,
                                                   self.resilience, 
                                                   self.bier)
-        
         self.storage_capacity = up_target_storage_limit
-        
         self.society_model = social_activity(configs, stage, age, scenario_code)
-        
 
         self.inflow_simulation_monthly = self.get_annual_inflow_simulation()
         infs_hyf = hydraulic_freq_analyse(self.inflow_simulation_monthly)
@@ -3640,7 +3374,6 @@ class dual_system_simulation:
         self.storage_correct = storage_correct
         self.noise_distribution_list = storage_correct.noise_distribution
         self.regress_s_to_correction = storage_correct.regress_params
-        
         
     def mcdbdi_drought_real_time(self, month, consum, storage_state,
                                  simulation_time = 1000, wdi_c = 0.85):
@@ -4172,5 +3905,3 @@ def occurance_rate_change_under_map(riskmap_fail):
     return np.asarray(output_list, dtype = np.float64)
 
 dual_system = dual_system_simulation(configs, 2, 0, 1)
-
-annual_riskmap = risk_map_read(configs['files']['riskmap_p'])

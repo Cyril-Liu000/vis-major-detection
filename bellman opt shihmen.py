@@ -16,7 +16,6 @@ from matplotlib import gridspec
 
 import json
 
-
 def model_setting(consumption_limit, max_storage, min_storage, resolution):
     
     consumption_array = np.zeros(shape = resolution)
@@ -32,7 +31,6 @@ def model_setting(consumption_limit, max_storage, min_storage, resolution):
     return consumption_array, storage_array
 
 # model_set = model_setting(consumption_limit, max_storage, min_storage, resolution)
-
 
 def get_demand(file_path_data_sheet):
     
@@ -92,7 +90,7 @@ def get_policy(policy_name):
     file_path = "./results/policy/" + policy_name + ".npy"
     output = np.load(file_path)
     return output
-     
+
 class env_setting:
     def __init__(self, annual_risk_map, model_set, initial_storage, 
                  initial_month, demand_list ,c_punish_factor = 0, s_gain_factor = 0):
@@ -125,7 +123,6 @@ class env_setting:
         self.noise_distribution_list = lm.dual_system.noise_distribution_list
     
     def random_correct_noise(self, month):
-   
         name =  self.noise_distribution_list[month - 1][0]
         params = self.noise_distribution_list[month - 1][1]
        
@@ -159,15 +156,13 @@ class env_setting:
 
         return noise    
     
-    
     def storage_change_correction(self, month, storage):
         
         slope, intercept = self.s_to_correct_params[month - 1]
         noise = self.random_correct_noise(month)
         
         return -1 * abs(storage * slope + intercept  + noise)
-        
-        
+           
     def es_expected_value(self, month):
         
         name = lm.dual_system.es_s_dis_list[month - 1][0]
@@ -204,7 +199,6 @@ class env_setting:
         
         return max(es, 0)
    
-
     def inflow_expected_value(self, month):
         
         name = lm.dual_system.inflow_s_dis_list[month - 1][0]
@@ -242,144 +236,89 @@ class env_setting:
         return max(inflow, 0)
 
     def reward_supply_capacity(self, consumption, probability_s):
-        
         return probability_s * consumption
     
     def reward_demand_satisfied(self, consumption, demand, probability_s):
-        
         output = abs((consumption - demand + 0.12) / demand )
-        
         return probability_s / output * consumption
 
     def reward_counter_shortage(self, consumption, demand):
-        
         output =  abs((consumption - demand + 0.12) / demand)
-        
         return 1 / output * demand
 
-# The potential supply capacity is the measurement to evaluate
-# water resource value in dual system. The counter shortage is maximum 
-
+    # The potential supply capacity is the measurement to evaluate
+    # water resource value in dual system. The counter shortage is maximum 
     def storage_update(self, month, pre_storage, consumption, inflow, change_correct):
-   
         capacity = self.capacity
         inflow = self.random_inflow(month)
         consumption_boundary = min(max(pre_storage + inflow, 0), consumption)
-        
         if pre_storage + inflow - consumption_boundary + change_correct > capacity:
-            return max(capacity, 0 )
-        
+            return max(capacity, 0)
         else:
             return max(pre_storage + inflow - consumption_boundary + change_correct, 0)
 
-
     def random_inflow(self, month):
-   
         name =  lm.dual_system.inflow_s_dis_list[month - 1][0]
         params = lm.dual_system.inflow_s_dis_list[month - 1][1]
-       
         if name == 'norm':
-        
             inflow = st.norm.rvs(loc = params[0], scale = params[1])
-        
         elif name == 'gamma':
-        
             inflow = st.gamma.rvs(a = params[0], loc = params[1], scale = params[2])
-    
         elif name == 'gumbel_r':
-            
             inflow = st.gumbel_r.rvs(loc = params[0], scale = params[1])
-            
         elif name == 'gumbel_l':
-            
-            inflow = st.gumbel_l.rvs(loc = params[0], scale = params[1])     
-        
+            inflow = st.gumbel_l.rvs(loc = params[0], scale = params[1])
         elif name == 'lognorm':
-
-            inflow = st.lognorm.rvs(s = params[0], loc = params[1], scale = params[2])          
-
+            inflow = st.lognorm.rvs(s = params[0], loc = params[1], scale = params[2])
         elif name == 'pearson3':
-
-            inflow = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])        
-
+            inflow = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])
         elif name == 'loggamma':
-            
-            inflow = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])          
-
+            inflow = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])
         return inflow
 
-
     def random_es(self, month):
-   
         name =  lm.dual_system.es_s_dis_list[month - 1][0]
         params = lm.dual_system.es_s_dis_list[month - 1][1]
-       
         if name == 'norm':
-        
             es = st.norm.rvs(loc = params[0], scale = params[1])
-        
         elif name == 'gamma':
-        
             es = st.gamma.rvs(a = params[0], loc = params[1], scale = params[2])
-    
         elif name == 'gumbel_r':
-            
             es = st.gumbel_r.rvs(loc = params[0], scale = params[1])
-            
         elif name == 'gumbel_l':
-            
-            es = st.gumbel_l.rvs(loc = params[0], scale = params[1])     
-        
+            es = st.gumbel_l.rvs(loc = params[0], scale = params[1])
         elif name == 'lognorm':
-
-            es = st.lognorm.rvs(s = params[0], loc = params[1], scale = params[2])          
-
+            es = st.lognorm.rvs(s = params[0], loc = params[1], scale = params[2])
         elif name == 'pearson3':
-
-            es = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])        
-
+            es = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])
         elif name == 'loggamma':
-            
-            es = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])          
-
+            es = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])
         return es
 
-    
     def randant_choice(self, storage, inflow, month):
-        
         consumption_boundary = max(storage + inflow, 0)
         max_indice = np.argmin(abs(consumption_boundary - self.consumptions))
-        
         return np.random.choice(self.consumptions[range(max_indice + 1)])
         
-        
-    def reset(self):
-        
+    def reset(self): 
         initial_indice_s = np.argmin(abs(self.initial_storage - self.storages))
         es = self.random_es(self.initial_month)
         inflow = self.random_inflow(self.initial_month)
-
         return  self.storages[initial_indice_s], self.initial_month, inflow, es
 
-
-    def reset_random(self):
-        
+    def reset_random(self):  
         initial_indice_s = np.random.choice(range(20))
         es = self.random_es(self.initial_month)
         inflow = self.random_inflow(self.initial_month)
-        
         return  self.storages[initial_indice_s], self.initial_month, inflow, es  
 
-    
     def step_update_mdp(self, consumption, storage, month, reward_type = 0):
-        
         threshold = lm.dual_system.rfd_threshold[month - 1]
         inflow = self.random_inflow(month)
         es = self.random_es(month)
         change_correct = self.storage_change_correction(month, storage)
         consumption_boundary = min(max(inflow + storage,0), consumption)
         demand = self.demand_list[month - 1]
-        
         next_storage = self.storage_update(month, storage, consumption_boundary, inflow, change_correct)
         storage_state = (storage + next_storage)/2
      
@@ -388,39 +327,26 @@ class env_setting:
         rfd = lm.dual_system.dual_system_update.get_RFD_mdp(consumption_boundary, wdi, es, month)
 
         def get_next_month(month):
-            
             if month % 12 == 0:
-                
                 return 12
-            
             else:
-                
                 return month % 12
         
         next_month = get_next_month(month + 1)        
         storage_gain = (next_storage - storage)*self.s_gain_factor
         consumption_punish = min(consumption_boundary - consumption, 0)  * self.c_punish_factor
         reward_con = storage_gain + consumption_punish
-        
         if rfd >= threshold and wdi > 0.85:
             reward_c = 0
         else:
             reward_c = consumption_boundary
-        
         if reward_type == 0:
-            
             reward = reward_c + reward_con
-        
         elif reward_type == 1:
-            
             reward = abs((demand/(demand - consumption_boundary))) * reward_c + reward_con
-        
         elif reward_type == 2:
-            
             reward = abs(demand/(demand - consumption_boundary)) * demand + reward_con
-            
-        return next_storage, reward, consumption_boundary, storage, next_month, inflow, es        
-        
+        return next_storage, reward, consumption_boundary, storage, next_month, inflow, es         
 class Q_learning:
     
     def __init__(self, epochs, count_step, eplison, decay, learning_rate
@@ -672,7 +598,6 @@ def default_water_resoruce_policy():
     return np.array(policy)
     
 class water_management_evaluation:
-    
     def __init__(self, annual_policy, demand_list):
         
         self.annual_policy = annual_policy
@@ -2058,9 +1983,7 @@ if __name__ == "__main__":
     discount_factors = [0.215, 0.465, 0.681]
 
     df_r = lm.dual_system.read_data.get_storage_correction_inflow_consum_dataframe()
-
     model_set = model_setting(consumption_limit, max_storage, min_storage, resolution)
-
     demand_list = get_demand(configs['files']['data_sheet'])
 
     # opt_s = Q_learning(50, 12000, 0.9, 0.2, 0.1, risk_map, model_set, 1000, 1, 
