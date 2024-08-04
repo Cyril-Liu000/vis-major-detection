@@ -14,7 +14,7 @@ import json
 with open("./configs.json", encoding="utf-8") as f:
     configs = json.load(f)
 
-class read_inflow_estimate_data: 
+class read_inflow_estimate_data:
     def __init__(self, files):
         self.file_path = files['total_data']
         self.file_parh_tem = files['tem']
@@ -38,8 +38,6 @@ class read_inflow_estimate_data:
         return t
     
     def get_precipitation_series(self):
-        
-        
         file_path = self.file_path
         data = pd.read_excel(file_path)
         dataFrame = pd.DataFrame(data)
@@ -58,7 +56,6 @@ class read_inflow_estimate_data:
         return round(precipitation_series,5)
     
     def get_inflow_cms_series(self):
-        
         file_path = self.file_path
         data = pd.read_excel(file_path)
         df = pd.DataFrame(data)
@@ -66,7 +63,6 @@ class read_inflow_estimate_data:
         return inflow
     
     def get_date_series(self):
-        
         file_path = self.file_path
     
         data = pd.read_excel(file_path)
@@ -76,38 +72,25 @@ class read_inflow_estimate_data:
         return temp
     
     def get_monthly_rainfall_data(self):
-        
         data_frame = self.get_rainfall_data_frame()
         data_frame = data_frame.dropna()
         data_frame = data_frame.reset_index(drop = True)
-        
-        
-        
+
         output = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        
         for i in range(len(data_frame)) :
-            
             for j in range(1,13):
-                
                 if data_frame['date_month'][i].month == j :
-                    
                     if data_frame['preception'][i] >= 0:
-                        
                         output[j-1].append(data_frame['preception'][i])
-                    
                     else:
                         continue
                     
         for i in range(len(output)):
-            
             output[i] = np.asarray(output[i], dtype = np.float64)
-        
         return output
     
     def get_month_rainfall_data_frame(self):
-        
         file_path = self.file_path_data_sheet
-        
         read_data = pd.read_excel(file_path)
         df = pd.DataFrame(read_data)
         date_month = pd.Series(df['date_month'])
@@ -120,7 +103,6 @@ class read_inflow_estimate_data:
         return df_r
       
     def get_precipitation_data_frame(self):
-        
         date_series = self.get_date_series()
         pre_series = self.get_precipitation_series()
         
@@ -131,7 +113,6 @@ class read_inflow_estimate_data:
         return df
         
     def get_consum_data_frame(self):
-        
         file_path = self.file_path_data_sheet 
         
         read_data = pd.read_excel(file_path)
@@ -149,7 +130,6 @@ class read_inflow_estimate_data:
         return df_r
     
     def get_storage_data_frame(self):
-        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -167,7 +147,6 @@ class read_inflow_estimate_data:
         return df_r
 
     def get_avaliability_data_frame(self):
-        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -184,8 +163,7 @@ class read_inflow_estimate_data:
         
         return df_r
     
-    def get_cta_data_frame(self):
-        
+    def get_cta_data_frame(self):  
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -202,8 +180,7 @@ class read_inflow_estimate_data:
         
         return df_r
     
-    def get_tem_date_data_frame(self):
-        
+    def get_tem_date_data_frame(self):   
         date_series = pd.Series(self.get_date_series())
         tem_series = pd.Series(self.get_temperature_series())
         
@@ -214,36 +191,23 @@ class read_inflow_estimate_data:
         return df
     
     def get_month_temperature_data(self):
-        
         data_frame = self.get_tem_date_data_frame()
         data_frame = data_frame.dropna()
         data_frame = data_frame.reset_index(drop = True)
-        
-        
+
         output = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        
         for i in range(len(data_frame)) :
-            
             for j in range(1,13):
-                
                 if data_frame['date_month'][i].month == j :
-                    
                     if data_frame['temperature'][i] >= 0:
-                        
                         output[j-1].append(data_frame['temperature'][i])
-                    
                     else:
                         continue
-        
         for i in range(len(output)):
-            
             output[i] = np.asarray(output[i], dtype = np.float64)
-                
-        
         return output
     
     def get_month_daily_precipitation_data(self):
-        
         file_path = self.file_path_ar    
         
         data = pd.read_excel(file_path)
@@ -251,7 +215,6 @@ class read_inflow_estimate_data:
         
         df_ar = df_ar.dropna()
         df_ar = df_ar.reset_index(drop = True)
-    
     
         month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
     
@@ -269,8 +232,7 @@ class read_inflow_estimate_data:
         
         return month_list
     
-    def get_month_daily_precipitation_data_v2(self):
-        
+    def get_month_daily_precipitation_data_v2(self):  
         data = self.get_month_daily_precipitation_data()
         occur_month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
         rain_month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
@@ -297,8 +259,7 @@ class read_inflow_estimate_data:
         
         return occur_month_list, rain_month_list
     
-    def get_month_zero_df(self):
-        
+    def get_month_zero_df(self):    
         mean = pd.Series([0,0,0,0,0,0,0,0,0,0,0,0])
         std = pd.Series([0,0,0,0,0,0,0,0,0,0,0,0])
         
@@ -351,7 +312,6 @@ class read_inflow_estimate_data:
             return df_4
         
     def get_RFD_threshold(self):
-        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -374,7 +334,6 @@ class read_inflow_estimate_data:
         return np.array(output)
     
     def get_BIER(self):
-        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -1742,9 +1701,7 @@ class precipitation_ar_model:
         return output_list        
         
 class inflow_estimate:
-    
     def __init__(self, date_series, precipitation_series, temperature_series):
-        
         self.date_series = date_series
         self.precipitation_series = precipitation_series
         self.temperature_series = temperature_series
@@ -1831,13 +1788,7 @@ class inflow_estimate:
     
         return u_next,s_next,q_f,ev          ## 回傳值為一個tuple    
     
-    
-    
-    
-
-
     def Mega_physical_model_v3(self):
-        
         date_series = self.date_series
         temperature_series = self.temperature_series
         precipitation_series = self.precipitation_series
@@ -1847,48 +1798,32 @@ class inflow_estimate:
         cn_list = self.cn_list
         lamda_list = self.lamda_list
         
-        
         len_number = len(temperature_series)
         q = []
         u_series = []
         s_series = []
         ev_s = []
         
-        
         def get_cs(month):
-            
             if month <= 11 and month >=5 :
-                
                 return self.cs_1
-            
             else:
-                
                 return self.cs_2
-            
-        
         
         for i in range(len_number):
-            
             date = date_series[i]
             temperature = temperature_series[i]
             month = date.month
             cn2 = cn_list[int(month) - 1]
             cs = get_cs(month)
             lamda = lamda_list[month - 1]
-            
-            
 
             precipitation = precipitation_series[i]
-            
             if i == 0:
-                
                 u = u_initial_list[month - 1]
                 s = s_initial_list[month - 1]
-                
                 amc_cls = self.AMS_classification_v2(date, precipitation_series)
                 cn = self.CN_caculation(amc_cls, cn2)
-                
-
                 
                 y = self.partial_physical_model_v2(date, precipitation,
                                                    temperature, u, s, cn, lamda)
@@ -1898,18 +1833,13 @@ class inflow_estimate:
                 s_series.append(y[1])
                 ev_t = round(y[3] * 763.4 * 10000 / 86400, 5)
                 ev_s.append(ev_t)
-                
             else :
-                
                 u = u_series[i-1] 
                 s = s_series[i-1]
                 
                 amc_cls = self.AMS_classification_v2(date = date,
                                                      precipitation_series = precipitation_series)
                 cn = self.CN_caculation(amc_cls,cn2)
-                
-
-                
                 y = self.partial_physical_model_v2(date,precipitation,
                                                    temperature,u,s,cn,lamda)
                 qs = round(cs*y[2]*763.4*10000/86400,7)
@@ -1919,18 +1849,12 @@ class inflow_estimate:
                 ev_t = round(y[3] * 763.4 * 10000 / 86400, 5)
                 ev_s.append(ev_t)
                 
-                
         q = np.asarray(q, dtype = np.float64)
         u_series = np.asarray(u_series, dtype = np.float64)
         s_series = np.asarray(s_series, dtype = np.float64)
         ev_s = np.asarray(ev_s, dtype = np.float64)
-            
-            
-        
         return q, ev_s      
 
-
-    
     def generate_month_date_series_optimization(self, month, temperature_series):
         
         length = len(temperature_series)
@@ -1945,8 +1869,6 @@ class inflow_estimate:
         
         return output
         
-        
-
     def Mega_physical_model_optimization(self, cn, lamda, month,
                                          precipitation_series,
                                          temperature_series,
@@ -2045,9 +1967,7 @@ class inflow_estimate:
             
         
         return q, ev_s 
-
-
-            
+        
     def AMS_classification_v2(self, date, precipitation_series):
         
         if date.month <= 10 and date.month >= 5:
@@ -2077,9 +1997,6 @@ class inflow_estimate:
                 return "AMC_2"
             else:
                 return "AMC_3"
-
-
-
 
     def AMS_classification_opt(self, date, precipitation_series, i ):
         
@@ -2111,8 +2028,6 @@ class inflow_estimate:
             else:
                 return "AMC_3"
 
-
-
     def date_series_to_date_number_v2(self, date):
         
         year = date.year
@@ -2127,9 +2042,7 @@ class inflow_estimate:
         d2 = datetime.datetime(y0,m0,d0)
         
         return int((d1 - d2).days)
-        
-        
-                
+                  
     def CN_caculation(self,AMS_CLS,cn):
         
         if AMS_CLS == 'AMC_1':
@@ -2140,8 +2053,7 @@ class inflow_estimate:
             return ans
         else:
             return cn  
-        
-        
+             
     def caculate_permutation_five_days(self,precipitation_series,date_number):
     
         if date_number < 4:
@@ -2338,6 +2250,7 @@ class climate_hydrological_simulation:
         date_series = self.generate_date_series(month)
         precipitation_series = self.p_ar.get_precipitation_sampling_v1(month)/10
         temperature_series = self.t_ar.get_temperature_sampling(month)
+        
         model = inflow_estimate(date_series,
                                 precipitation_series, 
                                 temperature_series)
@@ -3904,4 +3817,14 @@ def occurance_rate_change_under_map(riskmap_fail):
     
     return np.asarray(output_list, dtype = np.float64)
 
-dual_system = dual_system_simulation(configs, 2, 0, 1)
+# dual_system = dual_system_simulation(configs, 2, 0, 1)
+
+if __name__ == '__main__':
+    rd = read_inflow_estimate_data(configs['files'])
+    date = rd.get_date_series()
+    temperature = rd.get_month_temperature_data()
+    precipitation = rd.get_precipitation_series()
+    print(f'date: {date.shape} {type(date)}')
+    print(f'temperature: {len(temperature)} {type(temperature)}')
+    print(f'precipitation: {len(precipitation)} {type(precipitation)}')
+    
