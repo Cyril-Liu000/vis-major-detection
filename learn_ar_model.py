@@ -1,28 +1,62 @@
-import statsmodels.tsa.api as tsa
-import statsmodels.api as sm
-import scipy.optimize as opt
-import scipy.stats as st
-import scipy.fft as fft
-import pandas as pd
-import numpy as np
-import math
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-import datetime
-import json
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Jun 17 18:13:50 2023
 
-with open("./configs.json", encoding="utf-8") as f:
-    configs = json.load(f)
+@author: Cyril Liu
+"""
+
+import scipy.stats as st
+import numpy as np
+import statsmodels.tsa.api as tsa
+import statsmodels.tsa as stastsa
+import math as mt
+import pandas as pd
+import matplotlib.pyplot as plot
+import datetime
+import scipy.optimize as opt
+import scipy.fft as fft
+import math
+
+from matplotlib import gridspec
+
+
+file_path_data_sheet = './data/data_sheet.xlsx'
+file_path_tem = './data/石門站溫度資料.txt'
+file_path_total_data = './data/石門水庫雨量與流量資料.xlsx'
+file_path_ar = './data/日雨量溫度資料.xlsx'
+file_path_climate_change = './data/雨量與溫度變化預估.xlsx'
+file_path_riskmap_p = "./data/riskmap_data/"
 
 class read_inflow_estimate_data:
-    def __init__(self, files):
-        self.file_path = files['total_data']
-        self.file_parh_tem = files['tem']
-        self.file_path_data_sheet = files['data_sheet']
-        self.file_path_ar = files['ar']
-        self.file_path_climate_change = files['climate_change']
-
+    
+    def __init__(self, 
+                 file_path_total_data, 
+                 file_path_tem, 
+                 file_path_data_sheet,
+                 file_path_ar,
+                 file_path_climate_change):
+        
+        self.file_path = file_path_total_data
+        self.file_parh_tem = file_path_tem
+        self.file_path_data_sheet = file_path_data_sheet
+        self.file_path_ar = file_path_ar
+        self.file_path_climate_change = file_path_climate_change
+    
+    def get_dateseries_str(self):
+        
+        file_path = self.file_path
+    
+        data = pd.read_excel(file_path)
+        dataFrame = pd.DataFrame(data)
+        temp = pd.Series(dataFrame['日期'])
+        dateseries = []
+        for i in range(len(temp)):
+            dateseries.append(str(temp[i]))
+        return dateseries
+    
+    
     def get_temperature_series(self):
+        
         file_path_tem = self.file_parh_tem
         t = []    
         data  = open(file_path_tem)
@@ -30,14 +64,19 @@ class read_inflow_estimate_data:
         for line in data:
             temp = line.strip("\n")
             temp2 = temp.split("\t")
+    
             if temp2[1] == 'Temperature':
                 continue
             else:
                 t.append(float(temp2[1]))
                 date.append(temp2[0])
+    
         return t
     
+    
     def get_precipitation_series(self):
+        
+        
         file_path = self.file_path
         data = pd.read_excel(file_path)
         dataFrame = pd.DataFrame(data)
@@ -56,6 +95,7 @@ class read_inflow_estimate_data:
         return round(precipitation_series,5)
     
     def get_inflow_cms_series(self):
+        
         file_path = self.file_path
         data = pd.read_excel(file_path)
         df = pd.DataFrame(data)
@@ -63,6 +103,7 @@ class read_inflow_estimate_data:
         return inflow
     
     def get_date_series(self):
+        
         file_path = self.file_path
     
         data = pd.read_excel(file_path)
@@ -72,25 +113,38 @@ class read_inflow_estimate_data:
         return temp
     
     def get_monthly_rainfall_data(self):
+        
         data_frame = self.get_rainfall_data_frame()
         data_frame = data_frame.dropna()
         data_frame = data_frame.reset_index(drop = True)
-
+        
+        
+        
         output = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        
         for i in range(len(data_frame)) :
+            
             for j in range(1,13):
+                
                 if data_frame['date_month'][i].month == j :
+                    
                     if data_frame['preception'][i] >= 0:
+                        
                         output[j-1].append(data_frame['preception'][i])
+                    
                     else:
                         continue
                     
         for i in range(len(output)):
+            
             output[i] = np.asarray(output[i], dtype = np.float64)
+        
         return output
     
     def get_month_rainfall_data_frame(self):
+        
         file_path = self.file_path_data_sheet
+        
         read_data = pd.read_excel(file_path)
         df = pd.DataFrame(read_data)
         date_month = pd.Series(df['date_month'])
@@ -101,8 +155,10 @@ class read_inflow_estimate_data:
         df_r.insert(loc = 1, column = 'preception', value = prec)
     
         return df_r
-      
+    
+    
     def get_precipitation_data_frame(self):
+        
         date_series = self.get_date_series()
         pre_series = self.get_precipitation_series()
         
@@ -113,6 +169,7 @@ class read_inflow_estimate_data:
         return df
         
     def get_consum_data_frame(self):
+        
         file_path = self.file_path_data_sheet 
         
         read_data = pd.read_excel(file_path)
@@ -129,7 +186,9 @@ class read_inflow_estimate_data:
         
         return df_r
     
+    
     def get_storage_data_frame(self):
+        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -146,7 +205,9 @@ class read_inflow_estimate_data:
         
         return df_r
 
+    
     def get_avaliability_data_frame(self):
+        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -163,7 +224,9 @@ class read_inflow_estimate_data:
         
         return df_r
     
-    def get_cta_data_frame(self):  
+    
+    def get_cta_data_frame(self):
+        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -180,7 +243,8 @@ class read_inflow_estimate_data:
         
         return df_r
     
-    def get_tem_date_data_frame(self):   
+    def get_tem_date_data_frame(self):
+        
         date_series = pd.Series(self.get_date_series())
         tem_series = pd.Series(self.get_temperature_series())
         
@@ -191,23 +255,34 @@ class read_inflow_estimate_data:
         return df
     
     def get_month_temperature_data(self):
+        
         data_frame = self.get_tem_date_data_frame()
         data_frame = data_frame.dropna()
         data_frame = data_frame.reset_index(drop = True)
-
+        
+        
         output = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        
         for i in range(len(data_frame)) :
+            
             for j in range(1,13):
+                
                 if data_frame['date_month'][i].month == j :
+                    
                     if data_frame['temperature'][i] >= 0:
+                        
                         output[j-1].append(data_frame['temperature'][i])
+                    
                     else:
                         continue
+        
         for i in range(len(output)):
+            
             output[i] = np.asarray(output[i], dtype = np.float64)
         return output
     
     def get_month_daily_precipitation_data(self):
+        
         file_path = self.file_path_ar    
         
         data = pd.read_excel(file_path)
@@ -215,7 +290,6 @@ class read_inflow_estimate_data:
         
         df_ar = df_ar.dropna()
         df_ar = df_ar.reset_index(drop = True)
-    
         month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
     
         for i in range(len(df_ar)):
@@ -232,7 +306,9 @@ class read_inflow_estimate_data:
         
         return month_list
     
-    def get_month_daily_precipitation_data_v2(self):  
+    
+    def get_month_daily_precipitation_data_v2(self):
+        
         data = self.get_month_daily_precipitation_data()
         occur_month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
         rain_month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
@@ -259,7 +335,8 @@ class read_inflow_estimate_data:
         
         return occur_month_list, rain_month_list
     
-    def get_month_zero_df(self):    
+    def get_month_zero_df(self):
+        
         mean = pd.Series([0,0,0,0,0,0,0,0,0,0,0,0])
         std = pd.Series([0,0,0,0,0,0,0,0,0,0,0,0])
         
@@ -269,7 +346,135 @@ class read_inflow_estimate_data:
     
         return df
     
+    def get_climate_change_rcp2_6_p_data(self, age):
+        
+        data = pd.read_excel(self.file_path_climate_change,sheet_name = '2.6雨量')
+        df = pd.DataFrame(data)
+        
+        state = pd.Series(df['state'])
+        mean = pd.Series(df['avg'])
+        std = pd.Series(df['std'])
+        skew = pd.Series(df["skewness"])
+        
+        df_r = pd.DataFrame()
+        
+        df_r.insert(loc = 0, column = 'state', value = state)
+        df_r.insert(loc = 1, column = 'mean', value = mean)
+        df_r.insert(loc = 2, column = 'std', value = std)
+        df_r.insert(loc = 3, column = "skew", value = skew)
+        
+        if age == 0:
+            
+            return self.get_month_zero_df()
+        
+        elif age == 1:
+            
+            df_1 = df_r[df_r['state'] == 1].reset_index(drop = True)
+            
+            return df_1
+        
+        elif age == 2:
+            
+            df_2 = df_r[df_r['state'] == 2].reset_index(drop = True)
+            return df_2
+            
+        elif age == 3:
+            
+            df_3 = df_r[df_r['state'] == 3].reset_index(drop = True)
+            return df_3
+            
+        elif age == 4:
+            
+            df_4 = df_r[df_r['state'] == 4].reset_index(drop = True)
+            return df_4
+        
+    def get_climate_change_rcp8_5_p_data(self, age):
+        
+        data = pd.read_excel(self.file_path_climate_change,sheet_name = '8.5雨量')
+        df = pd.DataFrame(data)
+        
+        state = pd.Series(df['state'])
+        mean = pd.Series(df['avg'])
+        std = pd.Series(df['std'])
+        skew = pd.Series(df["skewness"])
+        
+        df_r = pd.DataFrame()
+        
+        df_r.insert(loc = 0, column = 'state', value = state)
+        df_r.insert(loc = 1, column = 'mean', value = mean)
+        df_r.insert(loc = 2, column = 'std', value = std)
+        df_r.insert(loc = 3, column = "skew", value = skew)
 
+        if age == 0:
+            
+            return self.get_month_zero_df()
+        
+        elif age == 1:
+            
+            df_1 = df_r[df_r['state'] == 1].reset_index(drop = True)
+            
+            return df_1
+        
+        elif age == 2:
+            
+            df_2 = df_r[df_r['state'] == 2].reset_index(drop = True)
+            return df_2
+            
+        elif age == 3:
+            
+            df_3 = df_r[df_r['state'] == 3].reset_index(drop = True)
+            return df_3
+            
+        elif age == 4:
+            
+            df_4 = df_r[df_r['state'] == 4].reset_index(drop = True)
+            return df_4    
+    
+
+    def get_climate_change_rcp2_6_t_data(self,age):
+        
+        data = pd.read_excel(self.file_path_climate_change,sheet_name = '2.6溫度')
+        df = pd.DataFrame(data)
+        
+        state = pd.Series(df['state'])
+        mean = pd.Series(df['avg'])
+        std = pd.Series(df['std'])
+        skew = pd.Series(df["skewness"])
+        
+        df_r = pd.DataFrame()
+        
+        df_r.insert(loc = 0, column = 'state', value = state)
+        df_r.insert(loc = 1, column = 'mean', value = mean)
+        df_r.insert(loc = 2, column = 'std', value = std)
+        df_r.insert(loc = 3, column = "skew", value = skew)
+
+        if age == 0:
+            
+            return self.get_month_zero_df()
+        
+        elif age == 1:
+            
+            df_1 = df_r[df_r['state'] == 1].reset_index(drop = True)
+            
+            return df_1
+        
+        elif age == 2:
+            
+            df_2 = df_r[df_r['state'] == 2].reset_index(drop = True)
+            return df_2
+            
+        elif age == 3:
+            
+            df_3 = df_r[df_r['state'] == 3].reset_index(drop = True)
+            return df_3
+            
+        elif age == 4:
+            
+            df_4 = df_r[df_r['state'] == 4].reset_index(drop = True)
+            return df_4    
+
+    
+    def get_climate_change_rcp8_5_t_data(self,age):
         
         data = pd.read_excel(self.file_path_climate_change,sheet_name = '8.5溫度')
         df = pd.DataFrame(data)
@@ -311,7 +516,9 @@ class read_inflow_estimate_data:
             df_4 = df_r[df_r['state'] == 4].reset_index(drop = True)
             return df_4
         
+    
     def get_RFD_threshold(self):
+        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -334,6 +541,7 @@ class read_inflow_estimate_data:
         return np.array(output)
     
     def get_BIER(self):
+        
         file_path = self.file_path_data_sheet
         
         read_data = pd.read_excel(file_path)
@@ -353,6 +561,7 @@ class read_inflow_estimate_data:
             output.append(df_r["BIER_L"][i])
         
         return np.array(output)
+
 
     def get_average_evapotranspiration_data(self):
         
@@ -386,7 +595,7 @@ class read_inflow_estimate_data:
            month_list[i] = np.mean(month_list[i])
         
         return np.asarray(month_list, dtype = np.float64)        
-    
+ 
     def get_monthly_inflow_data(self):
         
         file_path = self.file_path_data_sheet
@@ -402,7 +611,6 @@ class read_inflow_estimate_data:
         
         df_r = df_r.dropna()
         df_r = df_r.reset_index(drop = True)
-    
     
         month_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
     
@@ -420,115 +628,151 @@ class read_inflow_estimate_data:
         
         return month_list
 
+    def get_monthly_discharge_correction(self):
+        
+        file_path = self.file_path_data_sheet
+        read_data = pd.read_excel(file_path)
+        df = pd.DataFrame(read_data)
+        df_r = pd.DataFrame()
+        
+        capacity = 3000
+        date_series = pd.Series(df["date_month"])
+        inflow = np.array(pd.Series(df["inflow"]))
+        discharge = np.array(pd.Series(df["discharge_power"]))
+        pre_storage = np.array(pd.Series(df["initial_storage"]))
+        consum = np.array(pd.Series(df["總引水量(C)"]))
+        df_r.insert(loc = 0, column = "date", value = date_series)
+        df_r.insert(loc = 1, column = "inflow", value = inflow)
+        df_r.insert(loc = 2, column = "discharge", value = discharge)
+        df_r.insert(loc = 3, column = "storage", value = pre_storage)
+        df_r.insert(loc = 4, column = "consum", value = consum)
+        df_r = df_r.dropna()
+        df_r = df_r.reset_index(drop = True)        
+        
+        outflow = df_r["storage"] + df_r["inflow"] - df_r["consum"] - df_r["discharge"] - capacity
+        outflow[outflow < 0] = 0        
+        df_r.insert(loc = 5, column = "outflow", value = outflow)
+            
+        month_list_discharge = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        month_list_inflow = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        df_rr = df_r[:][0:444]
+        
+        for i in range(len(df_rr)):
+            for j in range(len(month_list_discharge)):
+                if df_rr["date"][i].month == j + 1:                  
+                    month_list_discharge[j].append(df_rr["discharge"][i])
+                    month_list_inflow[j].append(df_rr["inflow"][i])
+                else:
+                    continue
+        
+        for i in range(len(month_list_discharge)):
+            
+            month_list_discharge[i] = np.array(month_list_discharge[i])
+            month_list_inflow[i] = np.array(month_list_inflow[i])
+        
+        return np.mean(month_list_discharge, axis = 1), (month_list_discharge, month_list_inflow) 
+
+
     def get_monthly_correction_storage(self):
         
         file_path = self.file_path_data_sheet
         read_data = pd.read_excel(file_path)
         df = pd.DataFrame(read_data)
-        
         df_r = pd.DataFrame()
         
+        capacity = 3000
         date_series = pd.Series(df["date_month"])
-        storage = np.array(pd.Series(df["storage"]))
+        storage = np.array(pd.Series(df["initial_storage"]))
         inflow = np.array(pd.Series(df["inflow"]))
+        discharge = np.array(pd.Series(df["discharge_power"]))
         consumption = np.array(pd.Series(df["總引水量(C)"]))
-        de_storage = np.gradient(storage)
-        outflow_record = []
-        
-        
-        for i in range(len(de_storage)):
-            
-            if inflow[i] - consumption[i] > 3000 - storage[i]:
-                
-                inflow[i] = 3000 - storage[i] + consumption[i]
-                outflow_record.append(1)
-                
-            else:
-                outflow_record.append(0)
-                continue
-        
-        change = inflow - consumption
-        outflow_record = np.array(outflow_record)
+        de_storage = np.array(pd.Series(df["del_storage"]))
         
         df_r.insert(loc = 0, column = "date", value = date_series)
         df_r.insert(loc = 1, column = "storage", value = storage)
         df_r.insert(loc = 2, column = "de_storage", value = de_storage)
         df_r.insert(loc = 3, column = "inflow", value = inflow)
-        df_r.insert(loc = 4, column = "consumption", value = consumption)
-        df_r.insert(loc = 5, column = "correction", value = de_storage - change)
-        df_r.insert(loc = 6, column = "outflow_record", value = outflow_record)
+        df_r.insert(loc = 4, column = "consum", value = consumption)
+        df_r.insert(loc = 5, column = "discharge", value = discharge)
         df_r = df_r.dropna()
         df_r = df_r.reset_index(drop = True)        
-        
+        overflow = df_r["storage"] + df_r["inflow"] - df_r["consum"] - df_r["discharge"] - capacity
+        overflow[overflow < 0] = 0        
+        df_r.insert(loc = 6, column = "overflow", value = overflow)
+        correct = df_r["de_storage"] - (df_r["inflow"] - df_r["consum"] - df_r["discharge"] - df_r["overflow"])
+        df_r.insert(loc = 7, column = "correct", value = correct)
+
         month_list_correction = [[],[],[],[],[],[],[],[],[],[],[],[]]
-        month_list_storage = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        month_list_inflow = [[],[],[],[],[],[],[],[],[],[],[],[]]
         df_rr = df_r[:][0:444]
         
         for i in range(len(df_rr)):
             for j in range(len(month_list_correction)):
                 if df_rr["date"][i].month == j + 1:                  
-                    month_list_correction[j].append(df_rr["correction"][i])
-                    month_list_storage[j].append(df_rr["storage"][i])
+                    month_list_correction[j].append(df_rr["correct"][i])
+                    month_list_inflow[j].append(df_rr["inflow"][i])
                 else:
                     continue
         
         for i in range(len(month_list_correction)):
+            
             month_list_correction[i] = np.array(month_list_correction[i])
-            month_list_storage[i] = np.array(month_list_storage[i])
+            month_list_inflow[i] = np.array(month_list_inflow[i])
         
-        return np.mean(month_list_correction, axis = 1), (month_list_correction, month_list_storage) 
+        return np.mean(month_list_correction, axis = 1), (month_list_correction, month_list_inflow) 
         
     def get_storage_correction_inflow_consum_dataframe(self):
+        
+        capacity = 3000
         file_path = self.file_path_data_sheet
         read_data = pd.read_excel(file_path)
         df = pd.DataFrame(read_data)
-        df_r = pd.DataFrame()
         
+        df_r = pd.DataFrame()
         date_series = pd.Series(df["date_month"])
-        storage = np.array(pd.Series(df["storage"]))
+        storage_state = np.array(pd.Series(df["storage"]))
         inflow = np.array(pd.Series(df["inflow"]))
-        inflow_d = np.array(pd.Series(df["inflow"]))
         consumption = np.array(pd.Series(df["總引水量(C)"]))
+        discharge = np.array(pd.Series(df["discharge_power"]))
+        pre_storage = np.array(pd.Series(df["initial_storage"]))
         rfd = np.array(pd.Series(df["RFD"]))
         threshold = np.array(pd.Series(df["RFD_his"]))
         cwdi = np.array(pd.Series(df["WDI"]))
         imsrri_6 = np.array(pd.Series(df["IMSRRI_6"]))
         imsrri_12 = np.array(pd.Series(df["IMSRRI_12"]))
+        de_storage = np.array(pd.Series(df["del_storage"]))
+        drought_record = np.array(pd.Series(df["乾旱紀錄"]))
         
-        de_storage = np.gradient(storage)
-        outflow_record = []
-        for i in range(len(de_storage)):
-            if inflow_d[i] - consumption[i] > 3000 - storage[i]:
-                inflow[i] = 3000 - storage[i] + consumption[i]
-                outflow_record.append(1)
-            else:
-                outflow_record.append(0)
-                continue
+        df_r.insert(loc = 0, column = "date", value = date_series)
+        df_r.insert(loc = 1, column = "storage", value = pre_storage)
+        df_r.insert(loc = 2, column = "de_storage", value = de_storage)
+        df_r.insert(loc = 3, column = "inflow", value = inflow)
+        df_r.insert(loc = 4, column = "consum", value = consumption)
+        df_r.insert(loc = 5, column = "discharge", value = discharge)    
+        overflow = df_r["storage"] + df_r["inflow"] - df_r["consum"] - df_r["discharge"] - capacity
+        overflow[overflow < 0] = 0        
+        df_r.insert(loc = 6, column = "overflow", value = overflow)
+        correct = df_r["de_storage"] - (df_r["inflow"] - df_r["consum"] - df_r["discharge"] - df_r["overflow"])
+        df_r.insert(loc = 7, column = "correct", value = correct)        
         
-        change = inflow - consumption
-        outflow_record = np.array(outflow_record)
-        df_r.insert(loc=0, column = "date", value = date_series)
-        df_r.insert(loc=1, column = "storage", value = storage)
-        df_r.insert(loc=2, column = "de_storage", value = de_storage)
-        df_r.insert(loc=3, column = "inflow", value = inflow_d)
-        df_r.insert(loc=4, column = "consumption", value = consumption)
-        df_r.insert(loc=5, column = "correction", value = de_storage - change)
-        df_r.insert(loc=6, column = "outflow_record", value = outflow_record)
-        df_r.insert(loc=7, column = "correct_inflow", value = inflow)
-        df_r.insert(loc=8, column = "rfd", value = rfd)
-        df_r.insert(loc=9, column = "cwdi", value = cwdi)
-        df_r.insert(loc=10, column = "threshold", value = threshold)
-        df_r.insert(loc=11, column = "imsrri_6", value = imsrri_6)
-        df_r.insert(loc=12, column = "imsrri_12", value = imsrri_12)
+        df_r.insert(loc = 8, column = "rfd", value = rfd)
+        df_r.insert(loc = 9, column = "cwdi", value = cwdi)
+        df_r.insert(loc = 10, column = "threshold", value = threshold)
+        df_r.insert(loc = 11, column = "imsrri_6", value = imsrri_6)
+        df_r.insert(loc = 12, column = "imsrri_12", value = imsrri_12)
+        df_r.insert(loc = 13, column = "storage_state", value = storage_state)
+        df_r.insert(loc = 14, column = "drought_record", value = drought_record)
         df_r = df_r.dropna()
         df_r = df_r.reset_index(drop = True)        
-        return df_r
+        return df_r  
          
 class hydraulic_freq_analyse:
     
     def __init__(self,data_list , log_list = True):
-        self.data_list = data_list    
-        # distribution_type &  goodness of fitted test issue
+        self.data_list = data_list
+
+################# distribution_type &  goodness of fitted test issue###########        
+
         array_list = []
         property_list = []
         
@@ -536,7 +780,9 @@ class hydraulic_freq_analyse:
             distribution_list =  ['norm', 'gumbel_r', 'gamma',  'pearson3', 'lognorm', "gumbel_l"]
         
         else :
-            distribution_list =  ['norm', 'gumbel_r', 'gamma',  'pearson3', "gumbel_l"]        
+            distribution_list =  ['norm', 'gumbel_r', 'gamma',  'pearson3', "gumbel_l"]
+
+##############################################################################        
         
         for i in range(len(data_list)):
             temp = np.asarray(data_list[i])
@@ -704,7 +950,7 @@ class temperature_ar_model:
         
         
 
-    # initial_sample 
+####### initial_sample 
         
     def get_multinormal_cov(self, acf, std, n_lag):
         
@@ -986,9 +1232,8 @@ class temperature_ar_model:
             
             data_series = cdf_array_list[i]
             n_lag = self.n_lag_list[i]
-            # model = stastsa.arima_model.ARIMA(data_series 
-            #                                   ,order = [n_lag-1,0,0])
-            model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
+            model = stastsa.arima_model.ARIMA(data_series 
+                                              ,order = [n_lag,0,0])
             
             fitting = model.fit()
             fitting_params_p = fitting.params
@@ -1008,9 +1253,8 @@ class temperature_ar_model:
             
             data_series = cdf_array_list[i]
             n_lag = self.n_lag_list[i]
-            # model = stastsa.arima_model.ARIMA(data_series 
-            #                                   ,order = [n_lag-1,0,0])
-            model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
+            model = stastsa.arima_model.ARIMA(data_series 
+                                              ,order = [n_lag,0,0])
             
             fitting = model.fit()
             fitting_params_p = fitting.params
@@ -1019,8 +1263,6 @@ class temperature_ar_model:
         return model_list
 
 
-    
-    
     def get_monthly_cdf_series_sampling(self, month):
         
         mean, std, skew = self.cdf_property_list[month - 1]
@@ -1231,18 +1473,25 @@ class temperature_ar_model:
         
         return output_list
 
+  
 class precipitation_ar_model:
+    
     def __init__(self, rainy_day_list, rainfall_amount_list, log_list = False):
+        
         self.rainy_day_list = rainy_day_list
         self.rainfall_amount_list = rainfall_amount_list
+        
         rainy_day_hf = hydraulic_freq_analyse(rainy_day_list, log_list = log_list)
         rainfall_amount_hf = hydraulic_freq_analyse(rainfall_amount_list, log_list = log_list)
+        
         self.rainy_day_af = rainy_day_hf
         self.rainfall_amount_hf = rainfall_amount_hf
+        
         rainfall_distribution_list = self.rainfall_amount_hf.get_suitable_distribution_list()
         rainfall_statproperty_list = self.rainfall_amount_hf.property_list
         rainy_distribution_list = self.rainy_day_af.get_suitable_distribution_list()
         self.rainy_statproperty_list = self.rainy_day_af.property_list
+        
         
         self.rainfall_distribution_list = rainfall_distribution_list
         self.rainy_distribution_list = rainy_distribution_list
@@ -1263,243 +1512,388 @@ class precipitation_ar_model:
         self.model_params_norm = self.cdf_ar_model_norm()
         self.model_params_nt = self.cdf_ar_model_nt()
         
+        
+
+####### initial_sample 
+        
     def get_multinormal_cov(self, acf, std, n_lag):
+        
         array_list = []
+        
         for i in range(n_lag):
             temp_list = []
+            
             for j in range(n_lag):
+                
                 for k in range(n_lag):
+                    
                     if abs(j-i) == k:
-                        temp = std * std * acf[k]
+                        
+                        temp = std*std*acf[k]
                         temp_list = temp
+                        
             array_list.append(temp_list)
         cov = np.asarray(array_list, dtype = np.float64)
+        
         return cov
 
+
     def get_multinormal_mean(self, mean, n_lag):
+        
+        
         array_list = []
+        
         for i in range(n_lag):
+            
             array_list.append(mean)
+        
         mean_vector = np.array(array_list,dtype = np.float64)
+        
         return mean_vector
         
+        
+        
     def get_initial_sample(self, mean, std, n_lag, acf):
+        
         cov = self.get_multinormal_cov(acf, std, n_lag)
         mean = self.get_multinormal_mean(mean, n_lag)
+        
         initial = st.multivariate_normal.rvs(mean = mean, cov = cov)
+        
         return initial
     
+    
     def get_white_noise_property(self, ar_model_params, acf, std, n_lag):
+        
         constant = 1
         for i in range(1,n_lag + 1):
+            
             temp = acf[i] * ar_model_params[i]
             constant = constant - temp
-        nois_std = np.sqrt(constant * std * std)
+        
+        
+        nois_std = np.sqrt(constant * std*std) 
+        
         return np.asarray( [0, nois_std] ,dtype = np.float64)
 
+
+#####################################################################
+    
     def cdf_property_list(self):
+        
         cdf_list = self.his_cdf_list
         output_list = []
+        
         for i in range(len(cdf_list)):
+            
             temp = [np.mean(cdf_list[i]), np.std(cdf_list[i]), st.skew(cdf_list[i])]
             output_list.append(temp)
+            
         return output_list
 
+
     def cdf_property_list_norm(self):
+        
+        
         cdf_list = self.his_cdf_list_norm
         output_list = []
+        
         for i in range(len(cdf_list)):
+            
             temp = [np.mean(cdf_list[i]), np.std(cdf_list[i]), st.skew(cdf_list[i])]
             output_list.append(temp)
+            
         return output_list
         
+        
     def parameter_distribution_transform(self, name, dis_param, data):
+        
         if name == 'norm':
+            
             return st.norm.cdf(data,
                                loc = dis_param[0],
                                scale = dis_param[1])
+        
         elif name == 'gamma':
+            
             return st.gamma.cdf(data, 
                                 a = dis_param[0],
                                 loc = dis_param[1], 
                                 scale = dis_param[2])
-        elif name == 'pearson3':
+        
+        elif name == 'pearson3' :
+            
             return st.pearson3.cdf(data,  
                                    skew = dis_param[0],
                                    loc = dis_param[1],
                                    scale = dis_param[2])
-        elif name == 'gumbel_r':
+        
+        elif name == 'gumbel_r'  :
+            
             return st.gumbel_r.cdf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        elif name == 'gumbel_l':
+        
+        elif name == 'gumbel_l'  :
+            
             return st.gumbel_l.cdf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        elif name == 'lognorm':
+        
+        elif name == 'lognorm' :
+            
             return st.lognorm.cdf(data,
                                   s = dis_param[0],
                                   loc = dis_param[1],
                                   scale = dis_param[2])
-        elif name == 'loggamma':
+        
+        elif name == 'loggamma' :
+            
             return st.loggamma.cdf(data,
                                    c = dis_param[0],
                                    loc = dis_param[1], 
                                    scale = dis_param[2])
         
+        
     def ppf_transform(self, name, dis_param, data):
+        
         if name == 'norm':
+            
             return st.norm.ppf(data,
                                loc = dis_param[0],
                                scale = dis_param[1])
         elif name == 'gamma':
+            
             return st.gamma.ppf(data, 
                                 a = dis_param[0],
                                 loc = dis_param[1], 
                                 scale = dis_param[2])
-        elif name == 'pearson3':
+        
+        elif name == 'pearson3' :
+            
             return st.pearson3.ppf(data,  
                                    skew = dis_param[0],
                                    loc = dis_param[1],
                                    scale = dis_param[2])
-        elif name == 'gumbel_r':
+        
+        elif name == 'gumbel_r'  :
+            
             return st.gumbel_r.ppf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        elif name == 'gumbel_l':
+        
+        elif name == 'gumbel_l'  :
+            
             return st.gumbel_l.ppf(data,
                                    loc = dis_param[0],
                                    scale = dis_param[1])
-        elif name == 'lognorm':
+        
+        
+        elif name == 'lognorm' :
+            
             return st.lognorm.ppf(data,
                                   s = dis_param[0],
                                   loc = dis_param[1],
                                   scale = dis_param[2])
-        elif name == 'loggamma':
+        
+        elif name == 'loggamma' :
+            
             return st.loggamma.ppf(data,
                                    c = dis_param[0],
                                    loc = dis_param[1], 
                                    scale = dis_param[2])
+            
         
     def CDF_input_data_list(self):
+        
         array_list = self.rainy_day_list
         body = self.rainy_distribution_list
+        
         output_list = []
+        
         for i in range(len(array_list)):
+            
             name = body[i][0]
             dis_param = body[i][1]
             data = array_list[i]
+        
             temp = self.parameter_distribution_transform(name, dis_param, data)
             output_list.append(temp)
+        
         return output_list
 
+
     def CDF_input_data_list_norm(self):
+        
         array_list = self.rainy_day_list
         body = self.rainy_statproperty_list
         output_list = []
+        
+        
         for i in range(len(array_list)):
+            
             name = "norm"
             dis_param = [body[i][0], body[i][1]]
             data = array_list[i]
+        
             temp = self.parameter_distribution_transform(name, dis_param, data)
             output_list.append(temp)
+        
         return output_list
+ 
     
     def n_lag_list(self):
+        
         data_list = self.his_cdf_list
         n_lag_list = []
+        
         for i in range(len(data_list)):
+            
             temp_lag_array = tsa.pacf_yw(data_list[i])
+            
             for j in range(len(temp_lag_array)):
+                
                 if abs(temp_lag_array[j]) <= 1.96 / np.sqrt(len(temp_lag_array)) :
+                    
                     n_lag = j + 1
                     break
+                
                 else:
                     continue
+            
             n_lag_list.append(n_lag)
+        
         return n_lag_list
     
     def n_lag_list_nt(self):
+        
         data_list = self.rainy_day_list
         n_lag_list = []
+        
         for i in range(len(data_list)):
+            
             temp_lag_array = tsa.pacf_yw(data_list[i])
+            
             for j in range(len(temp_lag_array)):
-                if abs(temp_lag_array[j]) <= 1.96 / np.sqrt(len(temp_lag_array)):
+                
+                if abs(temp_lag_array[j]) <= 1.96 / np.sqrt(len(temp_lag_array)) :
+                    
                     n_lag = j + 1
                     break
+                
                 else:
                     continue
+            
             n_lag_list.append(n_lag)
+        
         return n_lag_list
     
+
+
+    
     def acf_list(self):
+        
         data_list = self.his_cdf_list
         output_list = []
+        
         for i in range(len(data_list)):
+            
              temp_acf = tsa.acf(data_list[i])
              output_list.append(temp_acf)
+             
         return output_list
 
+
     def acf_list_nt(self):
+        
         data_list = self.rainy_day_list
         output_list = []
+        
         for i in range(len(data_list)):
+            
              temp_acf = tsa.acf(data_list[i])
              output_list.append(temp_acf)
-        return output_list                   
+             
+        return output_list            
+
+## revise stasts.arima_model(order[n_lag + 1])           
         
     def cdf_ar_model(self):
+        
         model_list = []
         cdf_array_list = self.his_cdf_list
+        
+        
         for i in range(len(cdf_array_list)):
+            
             data_series = cdf_array_list[i]
             n_lag = self.n_lag_list[i]
-            # model = stastsa.arima_model.ARIMA(data_series 
-            #                                   ,order = [n_lag-1,0,0])
-            model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
+            model = stastsa.arima_model.ARIMA(data_series 
+                                              ,order = [n_lag,0,0])
+            
             fitting = model.fit()
             fitting_params_p = fitting.params
             model_list.append(fitting_params_p)
-        return model_list
-      
-    def cdf_ar_model_norm(self):
-        model_list = []
-        cdf_array_list = self.his_cdf_list_norm
-        for i in range(len(cdf_array_list)):
-            data_series = cdf_array_list[i]
-            n_lag = self.n_lag_list[i]
-            # model = stastsa.arima_model.ARIMA(data_series 
-            #                                   ,order = [n_lag-1,0,0])
-            model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
-            fitting = model.fit()
-            fitting_params_p = fitting.params
-            model_list.append(fitting_params_p)
-        return model_list 
-    
-    def cdf_ar_model_nt(self):
-        model_list = []
-        array_list = self.rainy_day_list
-        for i in range(len(array_list)):
-            data_series = array_list[i]
-            n_lag = self.n_lag_list[i]
-            # model = stastsa.arima_model.ARIMA(data_series 
-            #                                   ,order = [n_lag-1,0,0])
-            model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
-            fitting = model.fit()
-            fitting_params_p = fitting.params
-            model_list.append(fitting_params_p)
+        
         return model_list
 
+
+## revise stasts.arima_model(order[n_lag + 1])       
+    def cdf_ar_model_norm(self):
+        
+        model_list = []
+        cdf_array_list = self.his_cdf_list_norm
+        
+        
+        for i in range(len(cdf_array_list)):
+            
+            data_series = cdf_array_list[i]
+            n_lag = self.n_lag_list[i]
+            model = stastsa.arima_model.ARIMA(data_series 
+                                              ,order = [n_lag,0,0])
+            
+            fitting = model.fit()
+            fitting_params_p = fitting.params
+            model_list.append(fitting_params_p)
+        
+        return model_list
+
+## revise stasts.arima_model(order[n_lag + 1])   
+    
+    def cdf_ar_model_nt(self):
+        
+        model_list = []
+        array_list = self.rainy_day_list
+        
+        for i in range(len(array_list)):
+            
+            data_series = array_list[i]
+            n_lag = self.n_lag_list[i]
+            model = stastsa.arima_model.ARIMA(data_series 
+                                              ,order = [n_lag,0,0])
+            
+            fitting = model.fit()
+            fitting_params_p = fitting.params
+            model_list.append(fitting_params_p)
+        
+        return model_list
+
+
     def get_monthly_cdf_series_sampling_nt(self, month):
+        
         mean, std, skewness, kurt = self.rainy_statproperty_list[month - 1]
+        
         acf = self.acf_list_nt[month - 1]
         n_lag = self.n_lag_list_nt[month - 1]
         params = self.model_params_nt[month - 1]
-
+        
+        
         def month_day(month):
+            
             month_list = [31,28,31,30,31,30,31,31,30,31,30,31]
+            
             return month_list[month - 1]
+        
         
         initial = self.get_initial_sample(mean, std, n_lag, acf)
         mean_array = params[0] * np.ones(n_lag)
@@ -1510,14 +1904,21 @@ class precipitation_ar_model:
         
         simulation_time = month_day(month) - n_lag
         output_array = initial
+        
+        #a_cc = 1 / (1 + (noise_params[1] / std)**2 + (std * skew)**2)
+        
     
         for i in range(simulation_time):
+            
             if i == 0 :
+                
                 next_step = np.dot(initial_pa, params) + st.norm.rvs(loc = noise_params[0],
                                                                     scale = noise_params[1], 
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array), axis = None)
-            else:
+                
+            else :
+                
                 temp_array = output_array[i: i + n_lag]
                 temp_array = temp_array 
                 temp_array = np.hstack((np.array(1), temp_array))
@@ -1525,18 +1926,28 @@ class precipitation_ar_model:
                                                                     scale = noise_params[1],
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array),axis = None)
+        
         output_array_v = st.norm.cdf(output_array, loc = mean, scale = std)
+        
         return output_array_v
 
+
+
+
     def get_monthly_cdf_series_sampling(self, month):
+        
         mean, std, skew = self.cdf_property_list[month - 1]
         acf = self.cdf_acf_list[month - 1]
         n_lag = self.n_lag_list[month - 1]
         params = self.model_params[month - 1]
         
         def month_day(month):
+            
             month_list = [31,28,31,30,31,30,31,31,30,31,30,31]
+            
             return month_list[month - 1]
+        
+        
         
         initial = self.get_initial_sample(mean, std, n_lag, acf)
         mean_array = params[0] * np.ones(n_lag)
@@ -1549,12 +1960,16 @@ class precipitation_ar_model:
         output_array = initial
         
         for i in range(simulation_time):
+            
             if i == 0 :
+                
                 next_step = np.dot(initial_pa, params) + st.norm.rvs(loc = noise_params[0],
                                                                     scale = noise_params[1], 
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array), axis = None)
-            else:
+                
+            else :
+                
                 temp_array = output_array[i: i + n_lag]
                 temp_array = temp_array 
                 temp_array = np.hstack((np.array(1), temp_array))
@@ -1563,18 +1978,26 @@ class precipitation_ar_model:
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array),axis = None)
         
+        
         output_array_v = st.norm.cdf(output_array, loc = mean, scale = std)
+        
         return output_array_v
+
     
     def get_monthly_cdf_series_sampling_norm(self, month):
+        
         mean, std, skew = self.cdf_property_list_norm[month - 1]
         acf = self.cdf_acf_list[month - 1]
         n_lag = self.n_lag_list[month - 1]
         params = self.model_params_norm[month - 1]
         
         def month_day(month):
+            
             month_list = [31,28,31,30,31,30,31,31,30,31,30,31]
+            
             return month_list[month - 1]
+        
+        
         
         initial = self.get_initial_sample(mean, std, n_lag, acf)
         mean_array = params[0] * np.ones(n_lag)
@@ -1586,13 +2009,18 @@ class precipitation_ar_model:
         simulation_time = month_day(month) - n_lag
         output_array = initial
         
+        
         for i in range(simulation_time):
+            
             if i == 0 :
+                
                 next_step = np.dot(initial_pa, params) + st.norm.rvs(loc = noise_params[0],
                                                                     scale = noise_params[1], 
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array), axis = None)
-            else:
+                
+            else :
+                
                 temp_array = output_array[i: i + n_lag]
                 temp_array = temp_array 
                 temp_array = np.hstack((np.array(1), temp_array))
@@ -1601,10 +2029,17 @@ class precipitation_ar_model:
                                                                     size = 1)
                 output_array = np.concatenate((np.array(next_step),output_array),axis = None)
         
+        
+         
         output_array_v = st.norm.cdf(output_array, loc = mean, scale = std)
+        
+        
         return output_array_v
 
+
+
     def get_precipitation_sampling_v1(self, month):
+        
         cdf_series = self.get_monthly_cdf_series_sampling(month)
         body = self.rainfall_distribution_list[month - 1]
         truncated_value = 1 - self.rainy_statproperty_list[month - 1][0]
@@ -1614,11 +2049,17 @@ class precipitation_ar_model:
         
         name = body[0]
         dis_param = body[1]
+        #minmum = np.min(self.ppf_transform(name, dis_param, r_cdf_series))
+        
+        
         output = self.ppf_transform(name, dis_param, r_cdf_series)
         output[output <= 0.06] = 0
-        return output
+        
+        return output    
+
 
     def get_precipitation_sampling_v2(self, month):
+        
         cdf_series = self.get_monthly_cdf_series_sampling_norm(month)
         body = self.rainfall_distribution_list[month - 1]
         truncated_value = 1 - self.rainy_statproperty_list[month - 1][0]
@@ -1632,9 +2073,12 @@ class precipitation_ar_model:
         
         output = self.ppf_transform(name, dis_param, r_cdf_series)
         output[output <= 0.06] = 0
+        
         return output  
 
+## udate parameters ###
     def get_precipitation_sampling_v3(self, month):
+        
         cdf_series = self.get_monthly_cdf_series_sampling_nt(month)
         body = self.rainfall_distribution_list[month - 1]
         truncated_value = 1 - self.rainy_statproperty_list[month - 1][0]
@@ -1648,60 +2092,97 @@ class precipitation_ar_model:
         
         output = self.ppf_transform(name, dis_param, r_cdf_series)
         output[output <= 0.06] = 0
+        
         return output
 
+
     def check_precipitation_sampling_mean(self, month, times = 1000):
+        
         test = 0
+        
         for i in range(times):
+            
             temp = np.mean(self.get_precipitation_sampling_v1(month))
             test = test + temp
+        
         ## Replace the Version of self.get_precipitation_sampling() 
         return test / times
     
+    
     def check_precipitation_sampling_acf(self, month, times = 1000):
+        
         array = []
+        
         for i in range(1000):
+            
             temp = self.get_precipitation_sampling_v1(month)
             array.append(temp)
+        
         array = np.array(array)
         array = array.flatten()
+        
         return tsa.pacf(array)
     
+    
+    
     def check_sampling_stat(self, times = 1000):
+        
         mean = []
         acf = []
+        
         for i in range(12):
+            
             mean.append(self.check_precipitation_sampling_mean(i + 1))
             acf.append(self.check_precipitation_sampling_acf(i + 1 )[0 : 4])
+    
         return mean, acf            
     
+    
     def generate_monthly_precipitation_simulation(self, time = 1000):
+        
         output_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        
         for i in range(len(output_list)):
+            
             month_array = []
+            
             for j in range(time):
+                
                 temp = self.get_precipitation_sampling_v1(i + 1)
                 month_array.append(temp)
+            
             month_array = np.array(month_array)
             month_array = month_array.flatten()
+            
             output_list[i] = month_array
+        
         return output_list
 
+
     def generate_monthly_precipitation_simulation_v2(self, time = 1000):
-        output_list = [[],[],[],[],[],[],[],[],[],[],[],[]] 
+        
+        output_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        
         for i in range(len(output_list)):
+            
             month_array = []
+            
             for j in range(time):
+                
                 temp = self.get_precipitation_sampling_v2(i + 1)
                 month_array.append(temp)
             
             month_array = np.array(month_array)
             month_array = month_array.flatten()
+            
             output_list[i] = month_array
+        
         return output_list        
         
-class inflow_estimate:
+class inflow_estimate :
+    
     def __init__(self, date_series, precipitation_series, temperature_series):
+        
         self.date_series = date_series
         self.precipitation_series = precipitation_series
         self.temperature_series = temperature_series
@@ -1788,7 +2269,13 @@ class inflow_estimate:
     
         return u_next,s_next,q_f,ev          ## 回傳值為一個tuple    
     
+    
+    
+    
+
+
     def Mega_physical_model_v3(self):
+        
         date_series = self.date_series
         temperature_series = self.temperature_series
         precipitation_series = self.precipitation_series
@@ -1798,32 +2285,48 @@ class inflow_estimate:
         cn_list = self.cn_list
         lamda_list = self.lamda_list
         
+        
         len_number = len(temperature_series)
         q = []
         u_series = []
         s_series = []
         ev_s = []
         
+        
         def get_cs(month):
+            
             if month <= 11 and month >=5 :
+                
                 return self.cs_1
+            
             else:
+                
                 return self.cs_2
+            
+        
         
         for i in range(len_number):
+            
             date = date_series[i]
             temperature = temperature_series[i]
             month = date.month
             cn2 = cn_list[int(month) - 1]
             cs = get_cs(month)
             lamda = lamda_list[month - 1]
+            
+            
 
             precipitation = precipitation_series[i]
+            
             if i == 0:
+                
                 u = u_initial_list[month - 1]
                 s = s_initial_list[month - 1]
+                
                 amc_cls = self.AMS_classification_v2(date, precipitation_series)
                 cn = self.CN_caculation(amc_cls, cn2)
+                
+
                 
                 y = self.partial_physical_model_v2(date, precipitation,
                                                    temperature, u, s, cn, lamda)
@@ -1833,13 +2336,18 @@ class inflow_estimate:
                 s_series.append(y[1])
                 ev_t = round(y[3] * 763.4 * 10000 / 86400, 5)
                 ev_s.append(ev_t)
+                
             else :
+                
                 u = u_series[i-1] 
                 s = s_series[i-1]
                 
                 amc_cls = self.AMS_classification_v2(date = date,
                                                      precipitation_series = precipitation_series)
                 cn = self.CN_caculation(amc_cls,cn2)
+                
+
+                
                 y = self.partial_physical_model_v2(date,precipitation,
                                                    temperature,u,s,cn,lamda)
                 qs = round(cs*y[2]*763.4*10000/86400,7)
@@ -1849,12 +2357,18 @@ class inflow_estimate:
                 ev_t = round(y[3] * 763.4 * 10000 / 86400, 5)
                 ev_s.append(ev_t)
                 
+                
         q = np.asarray(q, dtype = np.float64)
         u_series = np.asarray(u_series, dtype = np.float64)
         s_series = np.asarray(s_series, dtype = np.float64)
         ev_s = np.asarray(ev_s, dtype = np.float64)
+            
+            
+        
         return q, ev_s      
 
+
+    
     def generate_month_date_series_optimization(self, month, temperature_series):
         
         length = len(temperature_series)
@@ -1869,6 +2383,8 @@ class inflow_estimate:
         
         return output
         
+        
+
     def Mega_physical_model_optimization(self, cn, lamda, month,
                                          precipitation_series,
                                          temperature_series,
@@ -1967,7 +2483,9 @@ class inflow_estimate:
             
         
         return q, ev_s 
-        
+
+
+            
     def AMS_classification_v2(self, date, precipitation_series):
         
         if date.month <= 10 and date.month >= 5:
@@ -1997,6 +2515,9 @@ class inflow_estimate:
                 return "AMC_2"
             else:
                 return "AMC_3"
+
+
+
 
     def AMS_classification_opt(self, date, precipitation_series, i ):
         
@@ -2028,6 +2549,8 @@ class inflow_estimate:
             else:
                 return "AMC_3"
 
+
+
     def date_series_to_date_number_v2(self, date):
         
         year = date.year
@@ -2042,7 +2565,9 @@ class inflow_estimate:
         d2 = datetime.datetime(y0,m0,d0)
         
         return int((d1 - d2).days)
-                  
+        
+        
+                
     def CN_caculation(self,AMS_CLS,cn):
         
         if AMS_CLS == 'AMC_1':
@@ -2053,7 +2578,8 @@ class inflow_estimate:
             return ans
         else:
             return cn  
-             
+        
+        
     def caculate_permutation_five_days(self,precipitation_series,date_number):
     
         if date_number < 4:
@@ -2066,8 +2592,9 @@ class inflow_estimate:
                 answer += precipitation_series[date_number - i]
             
         return answer
-    
+
 class statistic_preparing:
+    
     def __init__(self, mvsk, distribution_name, log_list = True):
         
         self.mvsk = mvsk
@@ -2226,27 +2753,54 @@ class statistic_preparing:
             return self.lognorm_stats()
 
 class climate_hydrological_simulation:
-    def __init__(self, configs):
-        rd = read_inflow_estimate_data(configs['files'])
+    
+    
+    def __init__(self,file_path_data_sheet,
+                 file_path_tem,
+                 file_path_total_data,
+                 file_path_ar,
+                 file_path_climate_change, 
+                 stage, 
+                 age
+                 ):
+        
+        rd = read_inflow_estimate_data(file_path_total_data,
+                                       file_path_tem, 
+                                       file_path_data_sheet, 
+                                       file_path_ar, 
+                                       file_path_climate_change)
+        
         self.precipitation_record_list = rd.get_month_daily_precipitation_data()
         p_data_body = rd.get_month_daily_precipitation_data_v2()
+        
         self.precipitation_binirization = p_data_body[0]
         self.precipitation_excluded_zero = p_data_body[1]
+        
         self.temperature_record_list = rd.get_month_temperature_data()
+        
         self.p_ar = precipitation_ar_model(self.precipitation_binirization,
                                            self.precipitation_excluded_zero)
+        
         self.t_ar = temperature_ar_model(self.temperature_record_list)
         
+
     def generate_date_series(self, month):
+        
+        
         day_list = [31,28,31,30,31,30,31,31,30,31,30,31]
         year = datetime.datetime.now().year
         start = str(year) + '/' + str(month) +'/'+ '1'
         end = str(year) + '/' + str(month) +'/'+ str(day_list[month - 1])
+        
         date_range = pd.date_range(start,end, freq = 'D')
+        
         date_series = pd.Series(date_range)
+        
         return date_series
     
+    
     def hydrological_simulation(self, month):
+        
         date_series = self.generate_date_series(month)
         precipitation_series = self.p_ar.get_precipitation_sampling_v1(month)/10
         temperature_series = self.t_ar.get_temperature_sampling(month)
@@ -2254,20 +2808,28 @@ class climate_hydrological_simulation:
         model = inflow_estimate(date_series,
                                 precipitation_series, 
                                 temperature_series)
+        
         streamflow, evapotranspiration = model.Mega_physical_model_v3()
+        
         return temperature_series, precipitation_series, streamflow, evapotranspiration
         
+        
     def hydrological_simulation_v2(self, month):
+        
         date_series = self.generate_date_series(month)
         precipitation_series = self.p_ar.get_precipitation_sampling_v2(month)/10
         temperature_series = self.t_ar.get_temperature_sampling(month)
+        
         model = inflow_estimate(date_series,
                                 precipitation_series, 
                                 temperature_series)
+        
         streamflow, evapotranspiration = model.Mega_physical_model_v3()
+        
         return temperature_series, precipitation_series, streamflow, evapotranspiration        
         
 class catcharea_state:
+    
     def __init__(self ,up_target_storage_limit, resilience, bier):
         
         
@@ -2313,81 +2875,77 @@ class catcharea_state:
     def get_RFD_mdp(self, consum, wdi, ev, month):
 
         return np.round((consum - ev * self.bier[month-1]) * wdi, 5)    
-
     
-
-    def reservoir_operation(self, inflow_array, es_array, past_storage, consum):
+    def reservoir_operation(self, inflow_array, es_array, 
+                            past_storage, consum, correct,
+                            discharge):
         
         sum_es = np.sum(es_array)
         sum_inflow = np.sum(inflow_array)
-        total_change = (sum_inflow - sum_es) - consum
-        
+        total_change = (sum_inflow - consum - discharge + correct)
+        overflow = 0
         
         if total_change + past_storage < 0:
             
             total_change = -1 * past_storage
-            consum = max((sum_inflow - sum_es) - total_change, sum_es)
+            end_storage = max(past_storage + total_change, 0)
         
-        
-        
-        if total_change + past_storage >  self.up_target_storage_limit:
+        elif total_change + past_storage >  self.up_target_storage_limit:
             
             end_storage = self.up_target_storage_limit
-            
             overflow = total_change + past_storage - self.up_target_storage_limit
             
         else :
             
-            end_storage = total_change / 2 + past_storage
-            overflow = 0
+            end_storage = max(past_storage + total_change, 0)
+        
+        eff_consum = consum
         storage_state = (end_storage + past_storage)/2
         
-        inflow = sum_inflow - overflow
-        
-        return end_storage, consum, inflow, overflow, sum_es, storage_state
+        return end_storage, eff_consum, sum_inflow, overflow, sum_es, storage_state
 
 
     
     def reservoir_operation_translate(self, inflow_array, es_array,
-                                      past_storage, consum, water_translate):
+                                      past_storage, consum, water_translate, 
+                                      correct, discharge):
         
         sum_es = np.sum(es_array)
         sum_inflow = np.sum(inflow_array) + water_translate
-        total_change = (sum_inflow - sum_es) - consum
-        
-        
+        total_change = (sum_inflow - consum - discharge + correct)
+        overflow = 0
+
         if total_change + past_storage < 0:
             
             total_change = -1 * past_storage
-            consum = max((sum_inflow - sum_es) - total_change, sum_es)
-        
-        
+            end_storage = max(past_storage + total_change, 0)
         
         if total_change + past_storage >  self.up_target_storage_limit:
             
             end_storage = self.up_target_storage_limit
-            
             overflow = total_change + past_storage - self.up_target_storage_limit
             
         else :
             
-            end_storage = total_change / 2 + past_storage
-            overflow = 0
+            end_storage = max(past_storage + total_change, 0)
+
         storage_state = (end_storage + past_storage)/2
+        eff_consum = consum
         
-        inflow = sum_inflow - overflow
-        
-        return end_storage, consum, inflow, overflow, sum_es, storage_state
+        return end_storage, eff_consum, sum_inflow, overflow, sum_es, storage_state
 
 
 
 
-    def reservoir_operation_under_rule(self, inflow_array, es_array, past_storage, consum, month):
+    def reservoir_operation_under_rule(self, inflow_array, es_array, past_storage, consum, month, 
+                                       correct, discharge):
         
         end_storage, consum, inflow, overflow, sum_es = self.reservoir_operation(inflow_array,
                                                                                  es_array,
                                                                                  past_storage,
-                                                                                 consum)
+                                                                                 consum, 
+                                                                                 correct,
+                                                                                 discharge)
         
         if end_storage < self.storage_low_bond[int(month - 1)]:
             
@@ -2413,20 +2971,23 @@ class catcharea_state:
                                    es_array, 
                                    inflow_array,
                                    consum,
-                                   month):
+                                   month,
+                                   correct,
+                                   discharge):
         
         
         
         end_storage, consum, inflow, overflow, sum_es, storage_state = self.reservoir_operation(inflow_array,
                                                                                                 es_array, 
                                                                                                 past_storage, 
-                                                                                                consum)
+                                                                                                consum, 
+                                                                                                correct,
+                                                                                                discharge)
         sum_inflow = np.sum(inflow_array)
 ############### which way of effective consum calculation issue#######             
         sum_inflow = sum_inflow - overflow
-        eff_consum = consum 
             
-        cta = self.get_cta(eff_consum, sum_inflow, storage_state)
+        cta = self.get_cta(consum, sum_inflow, storage_state)
         wdi = self.get_WDI(cta)
         rfd = self.get_RFD(consum, wdi, sum_es, month)
             
@@ -2440,7 +3001,9 @@ class catcharea_state:
                                               es_array, 
                                               inflow_array,
                                               consum,
-                                              month):
+                                              month,
+                                              correct,
+                                              discharge):
         
         
         
@@ -2448,7 +3011,9 @@ class catcharea_state:
                                                                                                            es_array, 
                                                                                                            past_storage, 
                                                                                                            consum, 
-                                                                                                           month)
+                                                                                                           month,
+                                                                                                           correct,
+                                                                                                           discharge)
         sum_inflow = np.sum(inflow_array)
 ############### which way of effective consum calculation issue#######             
         sum_inflow = sum_inflow - overflow
@@ -2469,7 +3034,9 @@ class catcharea_state:
                                               inflow_array,
                                               consum,
                                               month,
-                                              water_translate):
+                                              water_translate,
+                                              correct,
+                                              discharge):
         
         
         
@@ -2477,7 +3044,9 @@ class catcharea_state:
                                                                                                           es_array, 
                                                                                                           past_storage, 
                                                                                                           consum, 
-                                                                                                          water_translate)
+                                                                                                          water_translate,
+                                                                                                          correct,
+                                                                                                          discharge)
         sum_inflow = np.sum(inflow_array) + water_translate
 ############### which way of effective consum calculation issue#######             
         sum_inflow = sum_inflow - overflow
@@ -2810,8 +3379,7 @@ class SAR_model:
                 
                 break
         
-        # model = stastsa.arima_model.ARIMA(data_series , order = [n_lag-1,0,0])
-        model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
+        model = stastsa.arima_model.ARIMA(data_series , order = [n_lag,0,0])
         fitting = model.fit()
         
         return fitting.params, acf, n_lag
@@ -2838,8 +3406,7 @@ class SAR_model:
                 
                 break
         
-        # model = stastsa.arima_model.ARIMA(data_series , order = [n_lag-1,0,0])
-        model = sm.tsa.ARIMA(data_series, order = [n_lag-1,0,0])
+        model = stastsa.arima_model.ARIMA(data_series , order = [n_lag,0,0])
         fitting = model.fit()
         
         return fitting.params, acf, n_lag
@@ -3004,14 +3571,30 @@ class SAR_model:
             constant = constant - temp
         
         
-        nois_std = sqrt(constant * std*std) 
+        nois_std = mt.sqrt(constant * std*std) 
         
         return np.asarray([0, nois_std] ,dtype = np.float64)     
 
 class social_activity:
     
-    def __init__(self, configs, stage, age, scenario_code):
-        rd = read_inflow_estimate_data(configs['files'])
+    def __init__(self,
+                 file_path_data_sheet,
+                 file_path_tem,
+                 file_path_total_data,
+                 file_path_ar,
+                 file_path_climate_change,
+                 stage,
+                 age,
+                 scenario_code):
+        
+        rd = read_inflow_estimate_data(file_path_total_data = file_path_total_data,
+                                       file_path_ar = file_path_ar,
+                                       file_path_data_sheet = file_path_data_sheet,
+                                       file_path_climate_change = file_path_climate_change,
+                                       file_path_tem = file_path_tem)
+        
+        
+        
         
         self.read_data = rd
         self.consum_data = self.read_data.get_consum_data_frame()
@@ -3209,7 +3792,8 @@ class social_activity:
                     
         return np.asarray(output)
 
-class storage_correction:
+class pair_modeling:
+    
     def __init__(self, array_list):
         
         self.array_list = array_list
@@ -3252,107 +3836,232 @@ class storage_correction:
         slope, intercept = self.get_month_regression_storage_to_correction(month)
         y_p = slope * x + intercept
         noise = -1 * abs(y-y_p)
-    
         return noise
+
 class dual_system_simulation:
-    def __init__(self, configs, stage, age, scenario_code, up_target_storage_limit=3000):
-        rd = read_inflow_estimate_data(configs['files'])
+    
+    def __init__(self, file_path_data_sheet,
+                 file_path_tem,
+                 file_path_total_data,
+                 file_path_ar,
+                 file_path_climate_change,
+                 stage,
+                 age, 
+                 scenario_code,
+                 up_target_storage_limit = 3000
+                 ):
+        
+        
+        rd = read_inflow_estimate_data(file_path_total_data, 
+                                       file_path_tem, 
+                                       file_path_data_sheet, 
+                                       file_path_ar, 
+                                       file_path_climate_change)
         
         self.read_data = rd
         self.bier = self.read_data.get_BIER()
         self.rfd_threshold = self.read_data.get_RFD_threshold()
         
-        self.hydrological_model = climate_hydrological_simulation(configs)
+        self.hydrological_model = climate_hydrological_simulation(file_path_data_sheet,
+                                                                  file_path_tem, 
+                                                                  file_path_total_data, 
+                                                                  file_path_ar, 
+                                                                  file_path_climate_change,
+                                                                  stage,
+                                                                  age)
         
         cta_series = self.read_data.get_cta_data_frame()["cta"]
         self.resilience = np.log(99) / np.median(cta_series)
         self.dual_system_update = catcharea_state(up_target_storage_limit,
                                                   self.resilience, 
                                                   self.bier)
+        
         self.storage_capacity = up_target_storage_limit
-        self.society_model = social_activity(configs, stage, age, scenario_code)
+        
+        self.society_model = social_activity(file_path_data_sheet,
+                                             file_path_tem,file_path_total_data,file_path_ar,
+                                             file_path_climate_change, 
+                                             stage, 
+                                             age, 
+                                             scenario_code
+                                             )
+        
 
+        self.inflow_simulation_monthly = self.get_annual_inflow_simulation()
+        self.monthly_inflow_record = self.read_data.get_monthly_inflow_data()
+        
         self.inflow_simulation_monthly = self.get_annual_inflow_simulation()
         infs_hyf = hydraulic_freq_analyse(self.inflow_simulation_monthly)
         self.inflow_s_dis_list = infs_hyf.get_suitable_distribution_list()
         self.es_simulation_monthly = self.get_annual_es_simulation()
         ess_hyf = hydraulic_freq_analyse(self.es_simulation_monthly)
         self.es_s_dis_list = ess_hyf.get_suitable_distribution_list()
+
+#########################
+        mean_discharge_array, discharge_inflow_pair = rd.get_monthly_discharge_correction()
+        self.discharge_array = mean_discharge_array
+        self.discharge_inflow_pair = discharge_inflow_pair
         
+        discharge_modeling = pair_modeling(self.discharge_inflow_pair)
+        self.discharge_modeling = discharge_modeling
+        self.discharge_noise_distribution_list = discharge_modeling.noise_distribution
+        self.discharge_regress_inflow = discharge_modeling.regress_params
+######################
+
         mean_correct_array, correct_pair = rd.get_monthly_correction_storage()
         self.storage_correct_array = mean_correct_array
         self.correct_pair = correct_pair
         
-        storage_correct = storage_correction(self.correct_pair)
+        storage_correct = pair_modeling(self.correct_pair)
         self.storage_correct = storage_correct
         self.noise_distribution_list = storage_correct.noise_distribution
         self.regress_s_to_correction = storage_correct.regress_params
+
+    def storage_change_correction(self, month, inflow):
         
-    def mcdbdi_drought_real_time(self, month, consum, storage_state,
+        slope, intercept = self.regress_s_to_correction[month - 1]
+        noise = self.random_correct_noise(month, self.noise_distribution_list)
+        
+        return (inflow * slope + intercept  + noise)
+
+    def discharge_simulation(self, month, inflow):
+        
+        slope, intercept = self.discharge_regress_inflow[month - 1]
+        noise = self.random_correct_noise(month, self.discharge_noise_distribution_list)
+        
+        return abs(inflow * slope + intercept  + noise)
+
+    def random_correct_noise(self, month, noise_distribution_list):
+   
+        name =  noise_distribution_list[month - 1][0]
+        params = noise_distribution_list[month - 1][1]
+       
+        if name == 'norm':
+        
+            noise = st.norm.rvs(loc = params[0], scale = params[1])
+        
+        elif name == 'gamma':
+        
+            noise = st.gamma.rvs(a = params[0], loc = params[1], scale = params[2])
+    
+        elif name == 'gumbel_r':
+            
+            noise = st.gumbel_r.rvs(loc = params[0], scale = params[1])
+            
+        elif name == 'gumbel_l':
+            
+            noise = st.gumbel_l.rvs(loc = params[0], scale = params[1])     
+        
+        elif name == 'lognorm':
+
+            noise = st.lognorm.rvs(s = params[0], loc = params[1], scale = params[2])          
+
+        elif name == 'pearson3':
+
+            noise = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])        
+
+        elif name == 'loggamma':
+            
+            noise = st.pearson3.rvs(skew = params[0], loc = params[1], scale = params[2])          
+
+        return noise            
+        
+    def mcdbdi_drought_real_time(self, month, consum, past_storage,
                                  simulation_time = 1000, wdi_c = 0.85):
+        
         count_rfd = 0
         count_cwdi = 0
         count_fail = 0
         threshold = self.rfd_threshold[month - 1]
-        
         rfd_record = []
         wdi_record = []
+        bier = self.dual_system_update.bier
         
         for i in range(simulation_time):
+            
             climate_body = self.hydrological_model.hydrological_simulation(month)
             inflow = climate_body[2]
             ev = climate_body[3]
-            
-            cta = self.dual_system_update.get_cta(consum, inflow, storage_state)
-            cwdi = self.dual_system_update.get_WDI(cta)
-            rfd = self.dual_system_update.get_RFD(consum, cwdi, ev, month)
-            
+            discharge = self.discharge_simulation(month, np.sum(inflow))
+            correct = self.storage_change_correction(month, np.sum(inflow))
+            cta, cwdi, rfd, end_storage, overflow = self.dual_system_update.continue_base_state_update(past_storage, 
+                                                                                                      ev, 
+                                                                                                      inflow, 
+                                                                                                      consum, 
+                                                                                                      month,
+                                                                                                      correct,
+                                                                                                      discharge)
             rfd_record.append(rfd)
             wdi_record.append(cwdi)
+            er = sum(ev) * bier[month - 1]
             
-            if rfd > threshold :
+            if rfd > threshold:
+                
                 count_rfd = count_rfd + 1
+            
             if cwdi > wdi_c:
+                
                 count_cwdi = count_cwdi + 1
-            if rfd > threshold and cwdi > wdi_c :
+            
+            if (rfd > threshold or consum <= threshold / cwdi + er) and cwdi > wdi_c :
+                
                 count_fail = count_fail + 1
+            
             else: 
+                
                 continue
-        
+
         prob_rfd = count_rfd / simulation_time
         prob_cwdi = count_cwdi / simulation_time
         prob_fail = count_fail / simulation_time
         return prob_rfd, prob_cwdi, prob_fail
 
-    def mcdbdi_drought_real_time_v2(self, month, consum, storage_state,
+    def mcdbdi_drought_real_time_v2(self, month, consum, past_storage,
                                  simulation_time = 1000, wdi_c = 0.85):
+        
+        
         count_rfd = 0
         count_cwdi = 0
         count_fail = 0
         threshold = self.rfd_threshold[month - 1]
+        
         rfd_record = []
         wdi_record = []
+        bier = self.dual_system_update.bier        
         
         for i in range(simulation_time):
+            
             climate_body = self.hydrological_model.hydrological_simulation_v2(month)
             inflow = climate_body[2]
             ev = climate_body[3]
-            
-            cta = self.dual_system_update.get_cta(consum, inflow, storage_state)
-            cwdi = self.dual_system_update.get_WDI(cta)
-            rfd = self.dual_system_update.get_RFD(consum, cwdi, ev, month)
-            
+            discharge = self.discharge_simulation(month, np.sum(inflow))
+            correct = self.storage_change_correction(month, np.sum(inflow))           
+            cta, cwdi, rfd, end_storage, overflow = self.dual_system_update.continue_base_state_update(past_storage, 
+                                                                                                      ev, 
+                                                                                                      inflow, 
+                                                                                                      consum, 
+                                                                                                      month,
+                                                                                                      correct,
+                                                                                                      discharge)
             rfd_record.append(rfd)
             wdi_record.append(cwdi)
+            er = sum(ev) * bier[month - 1]
+            
             if rfd > threshold :
+                
                 count_rfd = count_rfd + 1
+            
             if cwdi > wdi_c:
+                
                 count_cwdi = count_cwdi + 1
-            if rfd > threshold and cwdi > wdi_c :
+            
+            if (rfd > threshold or consum <= threshold / cwdi + er) and cwdi > wdi_c :
+                
                 count_fail = count_fail + 1
+            
             else: 
-                continue
-        
+                
+                continue  
         prob_rfd = count_rfd / simulation_time
         prob_cwdi = count_cwdi / simulation_time
         prob_fail = count_fail / simulation_time
@@ -3360,42 +4069,60 @@ class dual_system_simulation:
 
     def mcdbdi_drought_real_time_transbasin(self,
                                             month, consum, 
-                                            storage_state,
+                                            past_storage,
                                             water_translate,
                                             simulation_time = 1000,
                                             wdi_c = 0.85,
                                             ):
+        
+        
         count_rfd = 0
         count_cwdi = 0
         count_fail = 0
         threshold = self.rfd_threshold[month - 1]
+        
         rfd_record = []
         wdi_record = []
+        bier = self.dual_system_update.bier
         
         for i in range(simulation_time):
+            
             climate_body = self.hydrological_model.hydrological_simulation_v2(month)
             inflow = climate_body[2]
             ev = climate_body[3]
-            
-            cta = self.dual_system_update.get_cta(consum, inflow, storage_state,
-                                                  water_translate = water_translate)
-            cwdi = self.dual_system_update.get_WDI(cta)
-            rfd = self.dual_system_update.get_RFD(consum, cwdi, ev, month)
-            
+            discharge = self.discharge_simulation(month, np.sum(inflow))
+            correct = self.storage_change_correction(month, np.sum(inflow))
+            cta, cwdi, rfd, end_storage, overflow = self.dual_system_update.continue_base_state_update(past_storage, 
+                                                                                                      ev, 
+                                                                                                      inflow, 
+                                                                                                      consum, 
+                                                                                                      month, 
+                                                                                                      correct,
+                                                                                                      discharge)
             rfd_record.append(rfd)
             wdi_record.append(cwdi)
+            er = sum(ev) * bier[month - 1]
+            
             if rfd > threshold :
+                
                 count_rfd = count_rfd + 1
+            
             if cwdi > wdi_c:
+                
                 count_cwdi = count_cwdi + 1
-            if rfd > threshold and cwdi > wdi_c :
+            
+            if (rfd > threshold or consum < threshold / cwdi + er) and cwdi > wdi_c :
+                
                 count_fail = count_fail + 1
-            else:
+            
+            else: 
+                
                 continue
-        
+
         prob_rfd = count_rfd / simulation_time
         prob_cwdi = count_cwdi / simulation_time
         prob_fail = count_fail / simulation_time
+        
         return prob_rfd, prob_cwdi, prob_fail
 
     def get_seasonal_risk_map(self, 
@@ -3404,6 +4131,7 @@ class dual_system_simulation:
                               max_storage,
                               min_storage,
                               resolution):
+        
         rfd_m = np.ones(shape = [resolution, resolution])
         cwdi_m = np.ones(shape = [resolution, resolution])
         fail_m = np.ones(shape = [resolution, resolution])        
@@ -3414,14 +4142,18 @@ class dual_system_simulation:
         s_step = (max_storage - min_storage) / resolution        
         
         for i in range(resolution):
-            consumption_array[i] = c_step * (i + 1)
+            
+            storage_array[i] = min_storage + i * s_step
+            
             for j in range(resolution):
+                consumption_array[j] = c_step * (j + 1)                
                 rfd_m[i][j],cwdi_m[i][j],fail_m[i][j] = self.mcdbdi_drought_real_time(month, 
-                                                                                      c_step * (i +1),
-                                                                                      min_storage + s_step * (resolution - j)
+                                                                                      consumption_array[j],
+                                                                                      storage_array[i]
                                                                                       )
-                storage_array[j] = min_storage + s_step * j
         return rfd_m, cwdi_m, fail_m, consumption_array, storage_array
+
+
 
     def get_seasonal_risk_map_v2(self, 
                                  month,
@@ -3429,6 +4161,7 @@ class dual_system_simulation:
                                  max_storage,
                                  min_storage,
                                  resolution):
+        
         rfd_m = np.ones(shape = [resolution, resolution])
         cwdi_m = np.ones(shape = [resolution, resolution])
         fail_m = np.ones(shape = [resolution, resolution])        
@@ -3439,29 +4172,40 @@ class dual_system_simulation:
         s_step = (max_storage - min_storage) / resolution        
         
         for i in range(resolution):
-            consumption_array[i] = c_step * (i + 1)
+            storage_array[i] = min_storage + i * s_step
+            
             for j in range(resolution):
+                consumption_array[j] = c_step * (j + 1)  
                 rfd_m[i][j],cwdi_m[i][j],fail_m[i][j] = self.mcdbdi_drought_real_time_v2(month, 
-                                                                                         c_step * (i +1),
-                                                                                         min_storage + s_step * (resolution - j)
+                                                                                         consumption_array[j],
+                                                                                         storage_array[i]
                                                                                          )
-                storage_array[j] = min_storage + s_step * j
         return rfd_m, cwdi_m, fail_m, consumption_array, storage_array
 
+    
     def sequential_calculation(self, month, consum_list, storage):
+        
         def get_month(input_m):
-            if input_m % 12 == 0:
-                return 12
-            else:
-                return input_m % 12
             
+            if input_m % 12 == 0:
+                
+                return 12
+            
+            else:
+                
+                return input_m % 12
+        
         cta_record = []
         rfd_record = []
         wdi_record = []
         storage_record = []
         overflow_record = []
+        
+        
         for i in range(len(consum_list)):
+            
             if i == 0:
+            
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage
@@ -3479,7 +4223,9 @@ class dual_system_simulation:
                 wdi_record.append(wdi)
                 storage_record.append(end_storage)
                 overflow_record.append(overflow)
+            
             else:
+                
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage_record[i - 1]
@@ -3506,49 +4252,76 @@ class dual_system_simulation:
         
         return cta_record, wdi_record, rfd_record, storage_record, overflow_record
     
+    
     def sequential_mcdbdi_drought(self, month, consum_list, storage,
                                   simulation_time = 1000, wdi_c = 0.85):
+        
+        
         def get_month(m):
+            
             if m % 12 == 0:
                 return 12
             else:
                 return m % 12
         
         threshold_array = []
+        
         for i in range(len(consum_list)):
+            
             temp_threshold = self.rfd_threshold[get_month(month + i)]
             threshold_array.append(temp_threshold)
+        
         threshold_array = np.array(threshold_array)
+        
         threshold = np.mean(threshold_array)
         
         count_rfd = 0
         count_wdi = 0
         count_fail = 0
+        
         for i in range(simulation_time):
+            
             body = self.sequential_calculation(month, consum_list, storage)
             rfd_record = body[2]
             wdi_record = body[1]
+            
             rfd_mean = np.mean(rfd_record)
+            
             if rfd_mean > threshold : 
+                
                 count_rfd = count_rfd + 1
+            
             if np.median(wdi_record) > wdi_c:
+                
                 count_wdi = count_wdi + 1
+            
             if np.median(wdi_record) > wdi_c and rfd_mean > threshold:
+                
                 count_fail = count_fail + 1
+            
             else:
+                
                 continue
         
         prob_rfd = count_rfd / simulation_time
         prob_wdi = count_wdi / simulation_time
         prob_fail = count_fail / simulation_time
+        
         return prob_rfd, prob_wdi, prob_fail
+            
             
     def sequential_calculation_translate(self, month, consum_list, storage, 
                                          translate_list):
+        
+        
         def get_month(input_m):
+            
             if input_m % 12 == 0:
+                
                 return 12
+            
             else:
+                
                 return input_m % 12
         
         cta_record = []
@@ -3557,8 +4330,11 @@ class dual_system_simulation:
         storage_record = []
         overflow_record = []
         
+        
         for i in range(len(consum_list)):
+            
             if i == 0:
+            
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage
@@ -3578,7 +4354,9 @@ class dual_system_simulation:
                 wdi_record.append(wdi)
                 storage_record.append(end_storage)
                 overflow_record.append(overflow)
+            
             else:
+                
                 m = get_month(i + month)
                 consum = consum_list[i]
                 storage = storage_record[i - 1]
@@ -3604,47 +4382,70 @@ class dual_system_simulation:
         wdi_record = np.array(wdi_record)
         storage_record = np.array(storage_record)
         overflow_record = np.array(overflow_record)
+        
         return cta_record, wdi_record, rfd_record, storage_record, overflow_record                
             
     def sequential_mcdbdi_drought_translate(self, month, consum_list, storage,
                                             translate_list,
                                             simulation_time = 1000,
                                             wdi_c = 0.85):
+        
+        
         def get_month(m):
+            
             if m % 12 == 0:
                 return 12
             else:
                 return m % 12
         
         threshold_array = []
+        
         for i in range(len(consum_list)):
+            
             temp_threshold = self.rfd_threshold[get_month(month + i)]
             threshold_array.append(temp_threshold)
+        
         threshold_array = np.array(threshold_array)
+        
         threshold = np.mean(threshold_array)
         
-        count_rfd, count_wdi, count_fail = 0, 0, 0
+        count_rfd = 0
+        count_wdi = 0
+        count_fail = 0
+        
         for i in range(simulation_time):
+            
             body = self.sequential_calculation_translate(month,
                                                          consum_list, 
                                                          storage,
                                                          translate_list)
             rfd_record = body[2]
             wdi_record = body[1]
+            
             rfd_mean = np.mean(rfd_record)
+            
             if rfd_mean > threshold : 
+                
                 count_rfd = count_rfd + 1
+            
             if np.median(wdi_record) > wdi_c:
+                
                 count_wdi = count_wdi + 1
+            
             if np.median(wdi_record) > wdi_c and rfd_mean > threshold:
+                
                 count_fail = count_fail + 1
+            
             else:
+                
                 continue
         
         prob_rfd = count_rfd / simulation_time
         prob_wdi = count_wdi / simulation_time
         prob_fail = count_fail / simulation_time
+        
         return prob_rfd, prob_wdi, prob_fail            
+
             
     def get_seasonal_risk_map_evolution(self,
                                         month,
@@ -3652,6 +4453,7 @@ class dual_system_simulation:
                                         max_storage,
                                         min_storage,
                                         resolution):
+        
         dis_property = self.inflow_dis_list[month - 1]
         name = dis_property[0]
         dis_param = dis_property[1]
@@ -3662,61 +4464,92 @@ class dual_system_simulation:
         af_storage_array = np.zeros(shape = resolution)
         
         c_step = consumption_limit / resolution
-        s_step = (max_storage - min_storage) / resolution
+        s_step = (max_storage - min_storage) / resolution 
 
         def determine_inflow(pre_storage, af_storage, consum):
+            
             inflow = pre_storage - af_storage + consum
             return inflow
 
         for i in range(resolution):
+            
             af_storage_array[i] = min_storage + s_step * i
+            
             for j in range(resolution):
+                
                 consumption_array[j] = c_step * (j + 1)
+                
                 for k in range(resolution):
+                    
                     pre_storage_array[k] = min_storage + s_step * k
                     consumption_array[k] = c_step * (k + 1)
                     data = determine_inflow(min_storage + s_step * (j),
                                             min_storage + s_step * (i),
                                             consumption_array[k])
+                    
                     probability_inflow = 1-self.hydrological_model.p_ar.parameter_distribution_transform(name,
                                                                                            dis_param,
                                                                                            data)
                     output_matrix[i][j][k] = probability_inflow
-        return output_matrix, consumption_array, pre_storage_array, af_storage_array
+                    
         
-    def get_annual_inflow_simulation(self, sample_size = 50):
-        monthly_list = [[], [], [], [], [], [], [], [], [], [], [], []]
+        return output_matrix, consumption_array, pre_storage_array, af_storage_array
+
+        
+    def get_annual_inflow_simulation(self, sample_size = 200):
+        
+        monthly_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        
         for i in range(12):
+            
             for j in range(sample_size):
+                
                 inflow_array = self.hydrological_model.hydrological_simulation(i +1)[2]
                 inflow = np.sum(inflow_array)
                 monthly_list[i].append(inflow)
+        
         return np.array(monthly_list)
         
-    def get_annual_es_simulation(self, sample_size = 50):
-        monthly_list = [[], [], [], [], [], [], [], [], [], [], [], []]
+
+    def get_annual_es_simulation(self, sample_size = 200):
+        
+        monthly_list = [[],[],[],[],[],[],[],[],[],[],[],[]]
+        
         for i in range(12):
+            
             for j in range(sample_size):
-                es_array = self.hydrological_model.hydrological_simulation(i+1)[3]
+                
+                es_array = self.hydrological_model.hydrological_simulation(i +1)[3]
                 es = np.sum(es_array)
                 monthly_list[i].append(es)
+        
         return np.array(monthly_list)
-   
+
 def risk_map_read(file_path_riskmap_p):
     output = []
     for i in range(12):
-        file_path = f'{file_path_riskmap_p}risk_{str(i+1)}.txt.npy'
+        file_path = file_path_riskmap_p+"riskmap_"+str(i+1)+".npy"
         temp = np.load(file_path)
-        temp = np.rot90(temp.T)
         output.append(temp)
     return np.array(output)
             
-def get_histogram_compare_p_history(data_list, his_data_list):
+dual_system = dual_system_simulation(file_path_data_sheet,
+                              file_path_tem, 
+                              file_path_total_data,
+                              file_path_ar, 
+                              file_path_climate_change,
+                              2,
+                              0,
+                              1)
+
+annual_riskmap = risk_map_read(file_path_riskmap_p)
+
+def get_histogram_compare_p_history(data_list,his_data_list):
     
     
     for i in range(len(data_list)):
         
-        fig = plt.figure(dpi = 600)
+        fig = plot.figure(dpi = 600)
         axe = fig.add_axes([0.1,0.1,0.9,0.9])
         axe.set_xlabel('cumulative daily precipitation (mm)')
         axe.set_ylabel("Cumulative Probability")
@@ -3736,13 +4569,12 @@ def get_histogram_compare_p_history(data_list, his_data_list):
         axe.legend()
         
         #axe.plot(X, hist_l.pdf(X), label = 'pdf')        
-
-def get_histogram_compare_t_history(data_list, his_data_list):
+def get_histogram_compare_t_history(data_list,his_data_list):
     
     
     for i in range(len(data_list)):
         
-        fig = plt.figure(dpi = 600)
+        fig = plot.figure(dpi = 600)
         axe = fig.add_axes([0.1,0.1,0.9,0.9])
         axe.set_xlabel('temperature (Celsius)')
         axe.set_ylabel('Cumulative Probability')
@@ -3762,18 +4594,17 @@ def get_histogram_compare_t_history(data_list, his_data_list):
         axe.legend()
         
         #axe.plot(X, hist_l.pdf(X), label = 'pdf') 
-
-def get_contour_diagram_risk_map(risk_map, i):
+def get_contour_diagram_risk_map(risk_map,i):
     
     rfd, cwdi, fail, c, s = risk_map
     
     C, S = np.meshgrid(c,s, indexing = "xy")
     
-    fig = plt.figure(dpi = 600)
+    fig = plot.figure(dpi = 600)
     axe = fig.add_axes([0.1,0.1,0.9,0.9])
     axe.set_xlabel("consumption(CMSD)")
     axe.set_ylabel("storage(CMSD)")
-    plt.title("Shihmen RFD: "+ str(i) + " month")
+    plot.title("Shihmen RFD: "+ str(i) + " month")
     
     fail = np.rot90(fail.T)
     
@@ -3783,15 +4614,15 @@ def get_contour_diagram_risk_map(risk_map, i):
 def get_contour_diagram_subplot(riskmap_plot):
     
     leng = len(riskmap_plot)
-    fig = plt.figure(dpi = 600, figsize = (15,10))   
+    fig = plot.figure(dpi = 600, figsize = (15,10))   
     spec = gridspec.GridSpec( nrows = 3, ncols = 4)
 
     for i in range(leng):
         
         fig.add_subplot(spec[i])
-       # plt.title(str(i+1) + " month")
-       # plt.xlabel("consumption")
-       # plt.ylabel("storage")
+       # plot.title(str(i+1) + " month")
+       # plot.xlabel("consumption")
+       # plot.ylabel("storage")
 
         rfd, cwdi, fail, c, s = riskmap_plot[i]
         C, S = np.meshgrid(c,s, indexing = "xy")
@@ -3799,11 +4630,10 @@ def get_contour_diagram_subplot(riskmap_plot):
         
         cwdi = np.rot90(cwdi.T)
         fail = np.rot90(fail.T)        
-        plt.contourf(C,S, fail,10)
+        plot.contourf(C,S, fail,10)
         
-    plt.colorbar(plt.contourf(C,S, fail), cax = fig.add_axes([0.95,0.05,0.05,0.85]))
-   # plt.tight_layout()
-
+    plot.colorbar(plot.contourf(C,S, fail), cax = fig.add_axes([0.95,0.05,0.05,0.85]))
+   # plot.tight_layout()
 def occurance_rate_change_under_map(riskmap_fail):
     
     output_list = []
@@ -3817,14 +4647,7 @@ def occurance_rate_change_under_map(riskmap_fail):
     
     return np.asarray(output_list, dtype = np.float64)
 
-# dual_system = dual_system_simulation(configs, 2, 0, 1)
 
-if __name__ == '__main__':
-    rd = read_inflow_estimate_data(configs['files'])
-    date = rd.get_date_series()
-    temperature = rd.get_month_temperature_data()
-    precipitation = rd.get_precipitation_series()
-    print(f'date: {date.shape} {type(date)}')
-    print(f'temperature: {len(temperature)} {type(temperature)}')
-    print(f'precipitation: {len(precipitation)} {type(precipitation)}')
-    
+
+
+
