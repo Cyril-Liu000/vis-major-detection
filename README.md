@@ -14,6 +14,8 @@ A brief description of your project, what it does, and why it is useful.
 ---
 
 ## Contribution
+For Part.1 of this work, the optimal datum policy under given managmenet objectives is proposed, with Q-learing and modified WAVE+ model. 
+For Part.2, we displayed the framework to identify the irresistibility and main causality analysis of the anthropogenic drought event.
 
 ## Installation
 
