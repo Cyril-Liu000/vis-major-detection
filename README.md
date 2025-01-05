@@ -5,13 +5,14 @@ A brief description of your project, what it does, and why it is useful.
 ---
 
 ## Table of Contents
-
+- [Contributing](#contribution)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Contributing](#contribution)
 - [License](#license)
 
 ---
+
+## Contribution
 
 ## Installation
 
@@ -36,4 +37,4 @@ pip install -r /path/to/requirements.txt
 Notebook files `paper_part_1.ipynb` and `paper_part_2.ipynb` show the results of our both papers. 
 These notebooks rely on `learn_ar_model.py` as a dependency module.
 
-## Contribution
+
