@@ -8,8 +8,7 @@ A brief description of your project, what it does, and why it is useful.
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [Requirements](#requirements)
-- [Contributing](#contributing)
+- [Contributing](#contribution)
 - [License](#license)
 
 ---
@@ -31,3 +30,10 @@ conda activate new_env
 pip install -r /path/to/requirements.txt
 ```
 
+
+## Usage
+### Execute code of paper 1 and 2
+Notebook files `paper_part_1.ipynb` and `paper_part_2.ipynb` show the results of our both papers. 
+These notebooks rely on `learn_ar_model.py` as a dependency module.
+
+## Contribution
