@@ -28,7 +28,7 @@ cd ./vis-major-detection
 ```python
 conda create --name new_env python=3.9
 conda activate new_env
-pip install -r /path/to/requirements.txt
+pip install -r requirements.txt
 ```
 
 
