@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 
 ## Usage
-### Execute code of paper 1 and 2
+### Execute code via notebook files
 Notebook files `paper_part_1.ipynb` and `paper_part_2.ipynb` show the results of our both papers. 
 These notebooks rely on `learn_ar_model.py` as a dependency module.
 
