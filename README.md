@@ -1,5 +1,6 @@
-# vis-major-detection
-
+# From causes to consequences for anthropogenic drought and water management policy evaluation 
+- (I) : optimal datum policy
+- (II) : causality and irresistibility
 A brief description of your project, what it does, and why it is useful.
 
 ---
