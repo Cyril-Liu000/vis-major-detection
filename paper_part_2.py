@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct 24 22:57:50 2024
-
-@author: Cyril Liu
-"""
-
 import scipy.stats as st
 import numpy as np
 import pandas as pd
@@ -14,13 +7,11 @@ import learn_ar_model as lm
 from matplotlib import gridspec
 import seaborn as sns
 
-
-file_path_data_sheet = 'data_sheet.xlsx'
-file_path_tem = '石門站溫度資料.txt'
-file_path_total_data = '石門水庫雨量與流量資料.xlsx'
-file_path_ar = '日雨量溫度資料.xlsx'
-file_path_climate_change = '雨量與溫度變化預估.xlsx'
-file_path_riskmap_p = "C:/Users/Cyril Liu/Desktop/Papper-Socioeconomic Drought/Paper of MCDBDI/"
+file_path_data_sheet = './data/data_sheet.xlsx'
+file_path_tem = './data/石門站溫度資料.txt'
+file_path_total_data = './data/石門水庫雨量與流量資料.xlsx'
+file_path_ar = './data/日雨量溫度資料.xlsx'
+file_path_riskmap_p = "./data/"
 risk_map = lm.annual_riskmap
 consumption_limit = 1500
 max_storage = 3000
@@ -84,8 +75,8 @@ def get_demand(file_path_data_sheet):
     data_frame = pd.DataFrame(pd.read_excel(file_path_data_sheet))
     date_series = pd.Series(data_frame["date_month"])
     
-    c_series = pd.Series(data_frame["總引水量(C)"])
-    record = pd.Series(data_frame["乾旱紀錄"])
+    c_series = pd.Series(data_frame["total_consumption"])
+    record = pd.Series(data_frame["drought_record"])
     
     dataframe_1 = pd.DataFrame()
     
@@ -2014,7 +2005,8 @@ def get_contour_diagram_subplot(riskmap,
             
         elif i == 8:
             plot.ylabel("storage (M$m^3$)")
-            plot.xlabel("consumption (M$m^3$)")
+            plot.xlabel("consumption (M$m^3$)")        
+        
         plot.scatter(c_list_c[i], s_list_c[i], c = "green",marker = "+",s = 100)
         plot.scatter(c_list_i[i], s_list_i[i], color = "blue", s = 50)
         plot.scatter(c_list_iii[i], s_list_iii[i], color = "orange", marker = "x", s = 100)
@@ -2188,9 +2180,7 @@ def draw_scatter_historical_pre_event_rfd_cwdi_v3(historical_pre_event_lamda_vis
 #     c = pf_s
 # =============================================================================
     fig = plot.figure(dpi = 600)
-    plot.scatter(lamda_s, vis_s, label= "event start change",
-                c = "black" , cmap='Reds',
-                s = 50*s, alpha=0.95, linewidths = 1.5, edgecolors = "black")
+    plot.scatter(lamda_s, vis_s, label= "event start change")
 
     plot.xlabel("average "+chr(955))
     plot.ylabel("average "+'G')
@@ -2217,9 +2207,7 @@ def draw_scatter_historical_pre_event_rfd_cwdi_v3(historical_pre_event_lamda_vis
 #    c = pf_e
     s = 1
     fig = plot.figure(dpi = 600)
-    plot.scatter(lamda_e, vis_e, label= "event start change",
-                c= "black" , cmap='Reds',
-                s= 50*s, alpha=0.95, linewidths = 1.5, edgecolors = "black")
+    plot.scatter(lamda_e, vis_e, label= "event start change")
 
     plot.xlabel("average "+chr(955))
     plot.ylabel("average "+'G')
@@ -2595,7 +2583,7 @@ def draw_sns_his():
                   x = chr(955), 
                   y="G", 
                   kind= style, color = "grey", space = 0,
-                  xlim = lim, ylim = lim, cbar = True, shade = True)
+                  xlim = lim, ylim = lim, cbar = True, fill=True)
     plot.subplots_adjust(left = 0.1, right = 0.8, top = 0.9, bottom = 0.1)
     pos_joint_ax = kdeplot.ax_joint.get_position()
     pos_marg_x_ax = kdeplot.ax_marg_x.get_position()
@@ -2611,7 +2599,7 @@ def draw_sns_his():
                   y= "G" + " under policy I" , 
                   kind= style,
                   xlim = lim, ylim = lim,
-                  color = "blue", space = 0, cbar = True, shade = True)   
+                  color = "blue", space = 0, cbar = True, fill=True)   
     plot.subplots_adjust(left = 0.1, right = 0.8, top = 0.9, bottom = 0.1)
     pos_joint_ax = kdeplot_1.ax_joint.get_position()
     pos_marg_x_ax = kdeplot_1.ax_marg_x.get_position()
@@ -2627,7 +2615,7 @@ def draw_sns_his():
                   y= "G" + " under policy II", 
                   kind= style,
                   xlim = lim, ylim = lim,
-                  color = "orange", space = 0, cbar = True, shade = True)    
+                  color = "orange", space = 0, cbar = True, fill=True)    
     plot.subplots_adjust(left = 0.1, right = 0.8, top = 0.9, bottom = 0.1)
     pos_joint_ax = kdeplot_2.ax_joint.get_position()
     pos_marg_x_ax = kdeplot_2.ax_marg_x.get_position()
@@ -2642,7 +2630,7 @@ def draw_sns_his():
                   y="G" + " under current policy", 
                   kind= style, 
                   xlim = lim, ylim = lim,
-                  color = "green", space = 0,   cbar = True, shade = True)
+                  color = "green", space = 0,   cbar = True, fill=True)
     plot.subplots_adjust(left = 0.1, right = 0.8, top = 0.9, bottom = 0.1)
     pos_joint_ax = kdeplot_3.ax_joint.get_position()
     pos_marg_x_ax = kdeplot_3.ax_marg_x.get_position()

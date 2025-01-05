@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Oct 24 23:16:45 2024
-
-@author: Cyril Liu
-"""
-
 import scipy.stats as st
 import numpy as np
 import pandas as pd
@@ -12,14 +5,11 @@ import matplotlib.pyplot as plot
 import matplotlib.cm as cm
 import learn_ar_model as lm
 from matplotlib import gridspec
-import seaborn as sns
-
 
 file_path_data_sheet = './data/data_sheet.xlsx'
 file_path_tem = './data/石門站溫度資料.txt'
 file_path_total_data = './data/石門水庫雨量與流量資料.xlsx'
 file_path_ar = './data/日雨量溫度資料.xlsx'
-file_path_climate_change = './data/雨量與溫度變化預估.xlsx'
 file_path_riskmap_p = "./data/"
 risk_map = lm.annual_riskmap
 consumption_limit = 1500
@@ -31,14 +21,12 @@ discount_factors = [0.215, 0.465, 0.681]
 df_r = lm.dual_system.read_data.get_storage_correction_inflow_consum_dataframe()
 
 def model_setting(consumption_limit, max_storage, min_storage, resolution):
-    
     consumption_array = np.zeros(shape = resolution)
     storage_array = np.zeros(shape = resolution)
     c_step = consumption_limit / resolution
     s_step = (max_storage - min_storage) / resolution        
     
     for i in range(resolution):
-            
         consumption_array[i] = c_step * (i + 1)
         storage_array[i] = min_storage + s_step * i
 
@@ -47,44 +35,37 @@ def model_setting(consumption_limit, max_storage, min_storage, resolution):
 model_set = model_setting(consumption_limit, max_storage, min_storage, resolution)
 
 def get_demand(file_path_data_sheet):
-    
     data_frame = pd.DataFrame(pd.read_excel(file_path_data_sheet))
     date_series = pd.Series(data_frame["date_month"])
     
-    c_series = pd.Series(data_frame["總引水量(C)"])
-    record = pd.Series(data_frame["乾旱紀錄"])
+    c_series = pd.Series(data_frame["total_consumption"])
+    record = pd.Series(data_frame["drought_record"])
     
     dataframe_1 = pd.DataFrame()
-    
     dataframe_1.insert(loc = 0, column = "date", value = date_series)
     dataframe_1.insert(loc = 1, column = "C", value = c_series)
     dataframe_1.insert(loc = 2, column = "record", value = record)
-    
     dataframe_1 = dataframe_1.dropna(thresh = 1)
     
     month_demand = np.zeros(shape = [12, 1])
     month_count = np.zeros(shape = [12, 1])
     
     for i in range(len(dataframe_1)):
-        
         for j in range(len(month_demand)):
-            
             if j + 1 == dataframe_1["date"][i].month:
                 if dataframe_1["record"][i] != 1:
                     month_demand[j] = month_demand[j] + dataframe_1["C"][i]
                     month_count[j] = month_count[j] + 1
-                    
                 else:
                     continue
     return (month_demand/ month_count).reshape([12]) * 1.1
-# 1.2 to 1.25
+
 demand_list = get_demand(file_path_data_sheet)
 
 def get_annual_risk_map(consumption_limit, 
                         max_storage,
                         min_storage, 
                         resolution):
-    
     output = []
     for i in range(12):
         temp = lm.dual_system.get_seasonal_risk_map(i+1,
@@ -102,10 +83,8 @@ def get_policy(policy_name):
     return output
             
 class env_setting:
-    
     def __init__(self, annual_risk_map, model_set, initial_storage, 
                  initial_month, demand_list):
-        
         self.consumptions = model_set[0]
         self.storages = model_set[1]
         self.annual_risk_map = annual_risk_map
@@ -1628,27 +1607,27 @@ policy_m_riii_std = get_policy("policy_m_riii_std")
 
 
 # =============================================================================
-# result_default = water_management_evaluation(policy_default, demand_list).sampling_every_twenty_year(1, 2000, simulation_time = 500)
-# result_m_ri = water_management_evaluation(policy_m_ri, demand_list).sampling_every_twenty_year(1, 2000, simulation_time = 500)
-# result_m_riii = water_management_evaluation(policy_m_riii, demand_list).sampling_every_twenty_year(1, 2000, simulation_time = 500)
-# 
-# d_e_default = drought_event_collection(result_default, demand_list)
-# d_e_m_ri = drought_event_collection(result_m_ri, demand_list)
-# d_e_m_riii = drought_event_collection(result_m_riii, demand_list)
-# 
-# plt_de_d = plt_drought_event(d_e_default)
-# plt_m_de_ri = plt_drought_event(d_e_m_ri)
-# plt_m_de_riii = plt_drought_event(d_e_m_riii)
-# plot_drought_violin(plt_de_d, plt_m_de_ri, plt_m_de_riii)
-# 
-# 
-# wave_plus_result_l_ri = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_l_ri, sampling_time = 500)
-# wave_plus_result_l_riii = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_l_riii, sampling_time = 500)
-# wave_plus_result_default = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_default, sampling_time = 500)   
-# wave_plus_result_m_ri = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_m_ri, sampling_time = 500)
-# wave_plus_result_m_riii = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_m_riii, sampling_time = 500)
-# wave_plus_result_s_ri = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_s_ri, sampling_time = 500)
-# wave_plus_result_s_riii = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_s_riii, sampling_time = 500)
+result_default = water_management_evaluation(policy_default, demand_list).sampling_every_twenty_year(1, 2000, simulation_time = 500)
+result_m_ri = water_management_evaluation(policy_m_ri, demand_list).sampling_every_twenty_year(1, 2000, simulation_time = 500)
+result_m_riii = water_management_evaluation(policy_m_riii, demand_list).sampling_every_twenty_year(1, 2000, simulation_time = 500)
+
+d_e_default = drought_event_collection(result_default, demand_list)
+d_e_m_ri = drought_event_collection(result_m_ri, demand_list)
+d_e_m_riii = drought_event_collection(result_m_riii, demand_list)
+
+plt_de_d = plt_drought_event(d_e_default)
+plt_m_de_ri = plt_drought_event(d_e_m_ri)
+plt_m_de_riii = plt_drought_event(d_e_m_riii)
+plot_drought_violin(plt_de_d, plt_m_de_ri, plt_m_de_riii)
+
+
+wave_plus_result_l_ri = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_l_ri, sampling_time = 500)
+wave_plus_result_l_riii = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_l_riii, sampling_time = 500)
+wave_plus_result_default = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_default, sampling_time = 500)   
+wave_plus_result_m_ri = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_m_ri, sampling_time = 500)
+wave_plus_result_m_riii = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_m_riii, sampling_time = 500)
+wave_plus_result_s_ri = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_s_ri, sampling_time = 500)
+wave_plus_result_s_riii = water_management_evaluation(policy_default, demand_list).resampling_wave_plus(1, 2000, policy_s_riii, sampling_time = 500)
 # =============================================================================
 
 def draw_wave_plus_histogram_v2(wave_plus_result_ri, 
@@ -1724,6 +1703,8 @@ policy_s_riii_evaluation = water_management_evaluation(policy_s_riii, demand_lis
                                        simulation_time = 10000)
 
 
+
+
 # =============================================================================
 # ri_training = opt_m.training_mdp()
 # riii_training = opt_m.training_mdp(1)
@@ -1792,7 +1773,8 @@ def draw_evaluation(policy_ri_evaluation,
     dt_s_bond = generate_draw_bound(dt_storage, up = 0.84, low = 0.16)
     
     x = np.array(["Feb", "Mar", "Apr", "May", "Jun", "Jul", "Agu", "Sep", "Oct", "Nov", "Dec", "Jan"])
-    fig = plot.figure(dpi = 600)
+    # fig = plot.figure(dpi = 600)
+    fig = plot.figure()
     axe = fig.add_axes([0.1,0.1,0.9,0.9])    
     axe.set_ylabel("volume (Mm$^3$)")
     axe.set_xlabel("month")
@@ -1819,9 +1801,11 @@ def draw_evaluation(policy_ri_evaluation,
                      alpha = .09, color = "green")
 
     axe.legend(loc = "upper left",bbox_to_anchor = (0.02,1))
+    plot.show()
 
 #################################################
-    fig = plot.figure(dpi = 600, figsize = (6,5))
+    # fig = plot.figure(dpi = 600, figsize = (6,5))
+    fig = plot.figure(figsize = (6,5))
     spec = gridspec.GridSpec( nrows = 2, ncols = 1)
     fig.add_subplot(spec[0])    
     
@@ -1835,6 +1819,7 @@ def draw_evaluation(policy_ri_evaluation,
         i += 1
     plot.xticks([])
     plot.ylabel("annual capacity (Mm$^3$)")
+    plot.show()
 
 # =============================================================================
 #     fig.add_subplot(spec[1]) 
@@ -1861,6 +1846,7 @@ def draw_evaluation(policy_ri_evaluation,
         i += 1
     plot.xticks([1,2,3], labels = labels)
     plot.ylabel("satisfied demand (%)")
+    plot.show()
 
 def draw_q_table_reward(q_array_loss):
     monthly_data = [[] for _ in range(12)]
@@ -1882,6 +1868,7 @@ def draw_q_table_reward(q_array_loss):
     plot.legend()
     plot.xlabel("training step")
     plot.ylabel("Q (Mm$^3$)")
+    plot.show()
 
 def draw_q_learning_process(q1_array_loss, q2_array_loss):
     
@@ -1895,6 +1882,7 @@ def draw_q_learning_process(q1_array_loss, q2_array_loss):
     plot.xticks(rotation = 45)
     plot.ylabel("\u0394Q (Mm$^3$)")
     plot.legend()
+    plot.show()
     
 def draw_decision_std(ri_std, riii_std):
     
@@ -1912,6 +1900,7 @@ def draw_decision_std(ri_std, riii_std):
     plot.ylabel("decision standard deviation (Mm$^3$)")
     plot.ylim(0, 15)
     plot.legend()
+    plot.show()
 
     fig_2 = plot.figure(dpi = 600)
     plot.plot(storage, np.mean( ri_std, axis = 0) * del_consum, 
@@ -1924,6 +1913,7 @@ def draw_decision_std(ri_std, riii_std):
     plot.ylim(0, 15)
     plot.tight_layout()
     plot.legend()
+    plot.show()
     
 def draw_policy_contour(policy_i, policy_ii):
     
@@ -1944,6 +1934,7 @@ def draw_policy_contour(policy_i, policy_ii):
     cbar1 = plot.colorbar(cont_i, cmap = cm.get_cmap(cmap_name), ticks = ticks_cbar )
     cbar1.ax.get_yaxis().labelpad = 15
     cbar1.ax.set_ylabel("water supply (Mm$^3$)", rotation=270, c = "w")
+    plot.show()
 
     fig.add_subplot(spec[1])
     plot.title("Policy II")
@@ -1954,8 +1945,5 @@ def draw_policy_contour(policy_i, policy_ii):
     cbar2 = plot.colorbar(cont_ii, cmap = cm.get_cmap(cmap_name), ticks = ticks_cbar)
     cbar2.ax.get_yaxis().labelpad = 15
     cbar2.ax.set_ylabel("planned consumption (Mm$^3$)", rotation=270)    
-    
-
-
-
+    plot.show()
 
